@@ -24,6 +24,11 @@ public class PlayerMovements : MonoBehaviour
         {
             animator.SetTrigger("Hurt");
         }
+
+        if (Keyboard.current.fKey.wasPressedThisFrame)
+        {
+            animator.SetTrigger("Attack");
+        }
     }
 
     public void Move(InputAction.CallbackContext context)
