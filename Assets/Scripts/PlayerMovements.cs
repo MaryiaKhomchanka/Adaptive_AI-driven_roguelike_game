@@ -29,6 +29,11 @@ public class PlayerMovements : MonoBehaviour
         {
             animator.SetTrigger("Attack");
         }
+
+        if (Keyboard.current.yKey.wasPressedThisFrame)
+        {
+            animator.SetTrigger("Dead");
+        }
     }
 
     public void Move(InputAction.CallbackContext context)
