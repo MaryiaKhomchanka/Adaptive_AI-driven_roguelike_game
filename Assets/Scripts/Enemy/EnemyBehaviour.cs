@@ -1,11 +1,9 @@
 using UnityEngine;
 using System.Collections;
-using UnityEngine.Rendering;
-using System.Runtime.CompilerServices;
 
-public class SlimeMovement : MonoBehaviour
+public class EnemyBehaviour : MonoBehaviour
 {
-    private enum SlimeState
+    private enum EnemyState
     {
         Wander,
         Notice,
@@ -13,23 +11,18 @@ public class SlimeMovement : MonoBehaviour
     }
 
     [SerializeField] private float detectionRange = 4f;
-
-    [SerializeField] private float minWander = 1f;
-    [SerializeField] private float maxWander = 3f;
-
-    [SerializeField] private float minIdle = 1f;
-    [SerializeField] private float maxIdle = 2f;
-
+    [SerializeField] private float minWander = 8f;
+    [SerializeField] private float maxWander = 10f;
+    [SerializeField] private float minIdle = 6f;
+    [SerializeField] private float maxIdle = 8f;
     [SerializeField] private float noticeDuration = 1f;
-
-    private SlimeState state = SlimeState.Wander;
+    private EnemyState state = EnemyState.Wander;
 
     private EnemyMovement movement;
     private Animator animator;
     private Transform player;
 
     private float nextWander;
-
     private bool isWalking = false;
 
     private void Awake()
@@ -114,13 +107,13 @@ public class SlimeMovement : MonoBehaviour
 
     private IEnumerator NoticePlayer() 
     {
-        state = SlimeState.Notice;
+        state = EnemyState.Notice;
         movement.Stop();
         Vector2 lookDirection = player.position - transform.position;
         movement.LookDirection(lookDirection);
         animator.SetTrigger("Notice");
         yield return new WaitForSeconds(noticeDuration);
-        state = SlimeState.Chase;
+        state = EnemyState.Chase;
     }
 
     private void ChasePlayer() 
@@ -137,7 +130,7 @@ public class SlimeMovement : MonoBehaviour
 
     private void Update()
     {
-        if (state == SlimeState.Wander)
+        if (state == EnemyState.Wander)
         {
             Wander();
 
@@ -146,9 +139,16 @@ public class SlimeMovement : MonoBehaviour
                 StartCoroutine(NoticePlayer());
             }
         }
-        else if (state == SlimeState.Chase)
+        else if (state == EnemyState.Chase)
         {
-            ChasePlayer();
+            if (!PlayerInRange()) 
+            {
+                state = EnemyState.Wander; 
+            }
+            else 
+            {
+                ChasePlayer();
+            }
         }
     }
 

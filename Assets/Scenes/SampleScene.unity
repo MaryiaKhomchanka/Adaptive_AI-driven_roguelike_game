@@ -991,10 +991,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SlimeMovement
   detectionRange: 4
-  minWander: 1
-  maxWander: 3
-  minIdle: 1
-  maxIdle: 2
+  minWander: 5
+  maxWander: 7
+  minIdle: 6
+  maxIdle: 8
   noticeDuration: 1
 --- !u!1 &1022032370
 GameObject:
