@@ -20,6 +20,11 @@ namespace Generation.Core
         public bool RevealBossRoom = true;
         public int MaxGenerationAttempts = 50;
 
+        /// <summary>[tunable] section 13 defaults; DungeonScale is the already-evaluated dungeonScale(dungeonIndex) curve, computed by the provider.</summary>
+        public float BaseThreatPerChunk = 2f;
+        public float LootPerChunkBase = 0.5f;
+        public float DungeonScale = 1f;
+
         /// <summary>
         /// [tunable] defaults, split from the design table's 4 shape families (Small/Corridor/Large/LShape)
         /// into the 8 concrete RoomShape orientations this dictionary is keyed by.

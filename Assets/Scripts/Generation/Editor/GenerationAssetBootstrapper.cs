@@ -40,15 +40,21 @@ namespace Generation.Editor
             Directory.CreateDirectory(PlaceholdersRoot + "/Props");
             AssetDatabase.Refresh();
 
+            Directory.CreateDirectory(PlaceholdersRoot + "/Specials");
+
             var sprites = PlaceholderSprites.CreateAll(PlaceholdersRoot + "/Sprites");
             var tiles = PlaceholderTiles.CreateAll(PlaceholdersRoot + "/Tiles", sprites);
             var props = PlaceholderProps.CreateAll(PlaceholdersRoot + "/Props", sprites);
+            var specials = PlaceholderSpecials.CreateAll(PlaceholdersRoot + "/Specials", sprites);
 
             var config = CreateOrLoad<GenerationConfig>(ConfigRoot + "/GenerationConfig.asset");
             var templateLibrary = BuildTemplateLibrary();
             var propLibrary = BuildPropLibrary(props);
+            var enemyTable = BuildEnemyTable(specials);
+            var lootTable = BuildLootTable(specials);
+            var specialPrefabs = BuildSpecialPrefabs(specials);
 
-            BuildTestScene(config, templateLibrary, propLibrary, tiles);
+            BuildTestScene(config, templateLibrary, propLibrary, enemyTable, lootTable, specialPrefabs, tiles);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -94,7 +100,43 @@ namespace Generation.Editor
             return library;
         }
 
-        static void BuildTestScene(GenerationConfig config, TemplateLibrary templateLibrary, PropLibrary propLibrary, PlaceholderTiles.Result tiles)
+        static EnemySpawnTable BuildEnemyTable(PlaceholderSpecials.Result specials)
+        {
+            var table = CreateOrLoad<EnemySpawnTable>(ConfigRoot + "/EnemySpawnTable.asset");
+            table.entries = new System.Collections.Generic.List<EnemySpawnEntry>
+            {
+                new EnemySpawnEntry { id = "slime", prefab = specials.Enemy, cost = 1f, weight = 1f, minDungeonIndex = 1 },
+            };
+            EditorUtility.SetDirty(table);
+            return table;
+        }
+
+        static LootTable BuildLootTable(PlaceholderSpecials.Result specials)
+        {
+            var table = CreateOrLoad<LootTable>(ConfigRoot + "/LootTable.asset");
+            table.entries = new System.Collections.Generic.List<LootEntry>
+            {
+                new LootEntry { id = "coin", prefab = specials.Loot, weight = 1f },
+            };
+            EditorUtility.SetDirty(table);
+            return table;
+        }
+
+        static SpecialPrefabs BuildSpecialPrefabs(PlaceholderSpecials.Result specials)
+        {
+            var asset = CreateOrLoad<SpecialPrefabs>(ConfigRoot + "/SpecialPrefabs.asset");
+            asset.boss = specials.Boss;
+            asset.treasureChest = specials.Treasure;
+            asset.shopVendor = specials.Shop;
+            asset.npc = specials.Npc;
+            asset.portal = specials.Portal;
+            EditorUtility.SetDirty(asset);
+            return asset;
+        }
+
+        static void BuildTestScene(
+            GenerationConfig config, TemplateLibrary templateLibrary, PropLibrary propLibrary,
+            EnemySpawnTable enemyTable, LootTable lootTable, SpecialPrefabs specialPrefabs, PlaceholderTiles.Result tiles)
         {
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
             try
@@ -115,11 +157,23 @@ namespace Generation.Editor
                 var builder = dungeonGO.AddComponent<DungeonBuilder>();
                 builder.templateLibrary = templateLibrary;
                 builder.propLibrary = propLibrary;
+                builder.enemyTable = enemyTable;
+                builder.lootTable = lootTable;
+                builder.specialPrefabs = specialPrefabs;
                 builder.floorVariants = tiles.FloorVariants;
                 builder.floorDecorTile = tiles.FloorDecor;
                 builder.wallTile = tiles.Wall;
 
                 var player = ClonePlayerFromSampleScene(scene);
+
+                var transitionController = dungeonGO.AddComponent<RoomTransitionController>();
+                transitionController.builder = builder;
+                transitionController.player = player != null ? player.transform : null;
+                transitionController.roomCamera = roomCamera;
+
+                var portalSpawner = dungeonGO.AddComponent<PortalSpawner>();
+                portalSpawner.builder = builder;
+                portalSpawner.specialPrefabs = specialPrefabs;
 
                 var runnerGO = new GameObject("DungeonRunner");
                 SceneManager.MoveGameObjectToScene(runnerGO, scene);
@@ -128,6 +182,14 @@ namespace Generation.Editor
                 runner.config = config;
                 runner.player = player != null ? player.transform : null;
                 runner.roomCamera = roomCamera;
+                runner.transitionController = transitionController;
+
+                var debugGO = new GameObject("DebugEnemyKiller");
+                SceneManager.MoveGameObjectToScene(debugGO, scene);
+                var debugKiller = debugGO.AddComponent<DebugEnemyKiller>();
+                debugKiller.targetCamera = cam;
+                debugKiller.builder = builder;
+                debugKiller.transitionController = transitionController;
 
                 EditorSceneManager.SaveScene(scene, ScenePath);
             }

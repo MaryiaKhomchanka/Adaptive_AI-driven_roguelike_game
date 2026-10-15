@@ -4,7 +4,8 @@
     "references": [
         "Generation.Core",
         "Generation.Runtime",
-        "Unity.2D.Tilemap.Extras"
+        "Unity.2D.Tilemap.Extras",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [
         "Editor"

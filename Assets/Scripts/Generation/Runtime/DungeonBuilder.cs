@@ -6,7 +6,8 @@ using UnityEngine.Tilemaps;
 
 namespace Generation.Runtime
 {
-    /// <summary>Builds the room GameObjects (tilemaps, walls, props) for a DungeonLayout. No spawning yet (stage 4).</summary>
+    /// <summary>Builds the room GameObjects (tilemaps, walls, props, door triggers) for a DungeonLayout, and
+    /// spawns enemies/loot/specials the first time a room is activated.</summary>
     public sealed class DungeonBuilder : MonoBehaviour
     {
         /// <summary>
@@ -20,6 +21,9 @@ namespace Generation.Runtime
         [Header("Libraries")]
         public TemplateLibrary templateLibrary;
         public PropLibrary propLibrary;
+        public EnemySpawnTable enemyTable;
+        public LootTable lootTable;
+        public SpecialPrefabs specialPrefabs;
 
         [Header("Tiles")]
         public TileBase[] floorVariants;
@@ -33,11 +37,18 @@ namespace Generation.Runtime
         {
             Clear();
 
-            var layout = DungeonGenerator.Generate(request, templateLibrary.Templates);
+            var enemyDefs = enemyTable != null ? enemyTable.ToDefs() : new List<EnemySpawnDef>();
+            var lootDefs = lootTable != null ? lootTable.ToDefs() : new List<LootSpawnDef>();
+
+            var layout = DungeonGenerator.Generate(request, templateLibrary.Templates, enemyDefs, lootDefs);
             CurrentLayout = layout;
 
             foreach (var room in layout.Rooms)
                 RoomsById[room.Id] = BuildRoom(layout, room, request.Seed);
+
+            BuildDoorTriggers(layout);
+
+            DungeonEvents.RaiseDungeonGenerated(layout);
 
             return layout;
         }
@@ -93,7 +104,120 @@ namespace Generation.Runtime
 
             controller.TileBounds = ComputeTileBounds(room);
 
+            var sSlots = FindSlotPositions(grid2D, w, h, 'S');
+            if (sSlots.Count > 0)
+                controller.SpecialSlotWorldPosition = new Vector3(anchorTileX + sSlots[0].x + 0.5f, anchorTileY + sSlots[0].y + 0.5f, 0f);
+
+            controller.OnFirstVisit = c => SpawnRoomContents(c, grid2D, w, h, anchorTileX, anchorTileY, seed);
+
+            roomGO.SetActive(false); // all rooms start hidden; RoomTransitionController activates the Start room
+
             return controller;
+        }
+
+        void SpawnRoomContents(RoomController controller, char[,] grid2D, int w, int h, int anchorTileX, int anchorTileY, int seed)
+        {
+            var room = controller.Room;
+
+            var eSlots = FindSlotPositions(grid2D, w, h, 'E');
+            var lSlots = FindSlotPositions(grid2D, w, h, 'L');
+            var sSlots = FindSlotPositions(grid2D, w, h, 'S');
+
+            foreach (var spawn in room.Enemies)
+            {
+                if (spawn.SlotIndex < 0 || spawn.SlotIndex >= eSlots.Count) continue;
+                var prefab = enemyTable != null ? enemyTable.Find(spawn.Id) : null;
+                if (prefab == null) continue;
+                SpawnMember(controller, prefab, eSlots[spawn.SlotIndex], anchorTileX, anchorTileY, room.Id, RoomMemberKind.Enemy);
+            }
+
+            foreach (var spawn in room.Loot)
+            {
+                if (spawn.SlotIndex < 0 || spawn.SlotIndex >= lSlots.Count) continue;
+                var prefab = lootTable != null ? lootTable.Find(spawn.Id) : null;
+                if (prefab == null) continue;
+                SpawnMember(controller, prefab, lSlots[spawn.SlotIndex], anchorTileX, anchorTileY, room.Id, RoomMemberKind.Loot);
+            }
+
+            if (room.Special != null && sSlots.Count > 0 && specialPrefabs != null)
+            {
+                var prefab = specialPrefabs.ForId(room.Special.Id);
+                if (prefab != null)
+                {
+                    var slot = sSlots[Mathf.Clamp(room.Special.SlotIndex, 0, sSlots.Count - 1)];
+                    var kind = room.Special.Id switch
+                    {
+                        "boss" => RoomMemberKind.Boss,
+                        "treasure" => RoomMemberKind.Treasure,
+                        "shop" => RoomMemberKind.Shop,
+                        "npc" => RoomMemberKind.Npc,
+                        _ => RoomMemberKind.Loot,
+                    };
+                    SpawnMember(controller, prefab, slot, anchorTileX, anchorTileY, room.Id, kind);
+                }
+            }
+        }
+
+        void SpawnMember(RoomController controller, GameObject prefab, (int x, int y) localTile, int anchorTileX, int anchorTileY, int roomId, RoomMemberKind kind)
+        {
+            var worldPos = new Vector3(anchorTileX + localTile.x + 0.5f, anchorTileY + localTile.y + 0.5f, 0f);
+            var instance = Instantiate(prefab, worldPos, Quaternion.identity, controller.Spawned);
+            var member = instance.GetComponent<RoomMember>() ?? instance.AddComponent<RoomMember>();
+            member.Initialize(roomId, kind);
+            RoomActivity.Register(roomId, kind);
+            foreach (var sr in instance.GetComponentsInChildren<SpriteRenderer>())
+                sr.sortingOrder = ActorSortingOrder;
+        }
+
+        static List<(int x, int y)> FindSlotPositions(char[,] grid2D, int w, int h, char symbol)
+        {
+            var result = new List<(int x, int y)>();
+            for (var x = 0; x < w; x++)
+            for (var y = 0; y < h; y++)
+                if (grid2D[x, y] == symbol)
+                    result.Add((x, y));
+            return result;
+        }
+
+        void BuildDoorTriggers(DungeonLayout layout)
+        {
+            var transitionController = GetComponent<RoomTransitionController>();
+
+            foreach (var door in layout.Doors)
+            {
+                var (center, size) = DoorTriggerShape(door);
+                CreateDoorTrigger(RoomsById[door.RoomA], door.RoomA, door.RoomB, center, size, transitionController);
+                CreateDoorTrigger(RoomsById[door.RoomB], door.RoomA, door.RoomB, center, size, transitionController);
+            }
+        }
+
+        static (Vector2 center, Vector2 size) DoorTriggerShape(DoorLink door)
+        {
+            var originX = door.ChunkA.X * ShapeDefinition.ChunkTiles;
+            var originY = door.ChunkA.Y * ShapeDefinition.ChunkTiles;
+            const float along = 7.5f; // midpoint of local tiles 7 and 8
+            const float chunkEdge = ShapeDefinition.ChunkTiles;
+
+            switch (door.SideA)
+            {
+                case Dir.N: return (new Vector2(originX + along, originY + chunkEdge), new Vector2(2, 2));
+                case Dir.S: return (new Vector2(originX + along, originY), new Vector2(2, 2));
+                case Dir.E: return (new Vector2(originX + chunkEdge, originY + along), new Vector2(2, 2));
+                default: return (new Vector2(originX, originY + along), new Vector2(2, 2)); // W
+            }
+        }
+
+        void CreateDoorTrigger(RoomController owner, int roomAId, int roomBId, Vector2 center, Vector2 size, RoomTransitionController transitionController)
+        {
+            var go = NewChild(owner.DoorTriggers, $"DoorTrigger_{roomAId}_{roomBId}");
+            go.transform.position = center;
+            var collider = go.AddComponent<BoxCollider2D>();
+            collider.isTrigger = true;
+            collider.size = size;
+            var trigger = go.AddComponent<DoorTrigger>();
+            trigger.RoomAId = roomAId;
+            trigger.RoomBId = roomBId;
+            trigger.Controller = transitionController;
         }
 
         static GameObject NewChild(Transform parent, string name)

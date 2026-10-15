@@ -9,7 +9,7 @@ namespace Generation.Editor
     {
         public struct Result
         {
-            public Sprite Floor0, Floor1, Floor2, FloorDecor, Wall, Obstacle, SolidDecor;
+            public Sprite Floor0, Floor1, Floor2, FloorDecor, Wall, Obstacle, SolidDecor, Enemy, Loot, Marker;
         }
 
         public static Result CreateAll(string folder)
@@ -23,6 +23,9 @@ namespace Generation.Editor
                 Wall = CreateSolid(folder, "Wall", new Color32(90, 82, 78, 255)),
                 Obstacle = CreateSolid(folder, "Obstacle", new Color32(70, 40, 35, 255)),
                 SolidDecor = CreateSolid(folder, "SolidDecor", new Color32(60, 120, 120, 170)),
+                Enemy = CreateSolid(folder, "Enemy", new Color32(200, 40, 40, 255)),
+                Loot = CreateSolid(folder, "Loot", new Color32(230, 200, 60, 255)),
+                Marker = CreateSolid(folder, "Marker", new Color32(255, 255, 255, 255)),
             };
         }
 

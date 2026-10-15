@@ -2,7 +2,8 @@
     "name": "Generation.Runtime",
     "rootNamespace": "Generation.Runtime",
     "references": [
-        "Generation.Core"
+        "Generation.Core",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

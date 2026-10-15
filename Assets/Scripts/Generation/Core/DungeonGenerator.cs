@@ -4,8 +4,7 @@ using System.Linq;
 namespace Generation.Core
 {
     /// <summary>
-    /// Builds a DungeonLayout from a GenerationRequest: layout -> doors/loops -> typing -> templates -> validate.
-    /// Enemy/loot budgets (pipeline step 5) are not part of this stage.
+    /// Builds a DungeonLayout from a GenerationRequest: layout -> doors/loops -> typing -> templates -> budgets -> validate.
     /// Pure data/algorithms: no UnityEngine, no UnityEngine.Random.
     /// </summary>
     public static class DungeonGenerator
@@ -14,14 +13,21 @@ namespace Generation.Core
         const string TypingStep = "typing";
         const string LoopsStep = "loops";
 
-        public static DungeonLayout Generate(GenerationRequest request, IReadOnlyList<RoomTemplate> templates)
+        public static DungeonLayout Generate(
+            GenerationRequest request,
+            IReadOnlyList<RoomTemplate> templates,
+            IReadOnlyList<EnemySpawnDef> enemyDefs = null,
+            IReadOnlyList<LootSpawnDef> lootDefs = null)
         {
+            enemyDefs ??= System.Array.Empty<EnemySpawnDef>();
+            lootDefs ??= System.Array.Empty<LootSpawnDef>();
+
             string lastFailure = "unknown";
             for (var attempt = 0; attempt < request.MaxGenerationAttempts; attempt++)
             {
                 try
                 {
-                    return GenerateAttempt(request, attempt, templates);
+                    return GenerateAttempt(request, attempt, templates, enemyDefs, lootDefs);
                 }
                 catch (RetryableGenerationException ex)
                 {
@@ -34,7 +40,9 @@ namespace Generation.Core
                 $"Seed={request.Seed}, DungeonIndex={request.DungeonIndex}. Last failure: {lastFailure}");
         }
 
-        static DungeonLayout GenerateAttempt(GenerationRequest request, int attempt, IReadOnlyList<RoomTemplate> templates)
+        static DungeonLayout GenerateAttempt(
+            GenerationRequest request, int attempt, IReadOnlyList<RoomTemplate> templates,
+            IReadOnlyList<EnemySpawnDef> enemyDefs, IReadOnlyList<LootSpawnDef> lootDefs)
         {
             var rooms = new List<RoomNode>();
             var doors = new List<DoorLink>();
@@ -60,6 +68,7 @@ namespace Generation.Core
             };
 
             TemplateSelector.AssignTemplates(request, attempt, layout, templates);
+            BudgetPlanner.AssignBudgets(request, attempt, layout, templates, enemyDefs, lootDefs);
 
             var violations = DungeonValidator.Validate(layout);
             if (violations.Count > 0)
