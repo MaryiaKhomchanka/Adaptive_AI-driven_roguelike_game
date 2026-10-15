@@ -12,7 +12,7 @@ namespace Generation.Core
     /// <summary>Parses the text template format from spec 8.1/8.2. Accepts a plain string, no Unity asset types.</summary>
     public static class TemplateParser
     {
-        const int TileSize = 16;
+        const int TileSize = ShapeDefinition.ChunkTiles;
         static readonly HashSet<char> AllowedChars = new HashSet<char> { '.', '#', 'P', ',', 'E', 'L', 'S', 'X' };
 
         public static RoomTemplate Parse(string text, string name)

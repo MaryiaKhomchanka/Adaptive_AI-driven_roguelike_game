@@ -40,8 +40,8 @@ namespace Generation.Core
             var doorZoneCells = new List<(int tx, int ty, Dir side)>();
             foreach (var slot in ShapeDefinition.DoorSlots(shape))
             {
-                var originX = slot.LocalChunk.X * 16;
-                var originY = slot.LocalChunk.Y * 16;
+                var originX = slot.LocalChunk.X * ShapeDefinition.ChunkTiles;
+                var originY = slot.LocalChunk.Y * ShapeDefinition.ChunkTiles;
                 foreach (var (dx, dy) in ZoneOffsets(slot.Side))
                 {
                     var tx = originX + dx;

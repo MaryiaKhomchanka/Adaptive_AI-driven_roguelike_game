@@ -18,6 +18,9 @@ namespace Generation.Core
     /// <summary>Static chunk footprints for each room shape, anchored at (0,0), plus their door candidate slots.</summary>
     public static class ShapeDefinition
     {
+        /// <summary>A chunk is 16x16 tiles (spec section 4).</summary>
+        public const int ChunkTiles = 16;
+
         // Chunk coordinate convention: X+ = East, Y+ = North.
         static readonly Dictionary<RoomShape, Cell[]> ChunkOffsets = new Dictionary<RoomShape, Cell[]>
         {
