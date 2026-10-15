@@ -23,8 +23,8 @@ namespace Generation.Tests
             for (var seed = 0; seed < 100; seed++)
             {
                 var request = TestRequests.Default(seed, dungeonIndex: 3);
-                var a = DungeonGenerator.Generate(request);
-                var b = DungeonGenerator.Generate(request);
+                var a = DungeonGenerator.Generate(request, TemplateTestLibrary.Load());
+                var b = DungeonGenerator.Generate(request, TemplateTestLibrary.Load());
                 Assert.AreEqual(Serialize(a), Serialize(b), $"Mismatch for seed={seed}");
             }
         }

@@ -4,9 +4,8 @@ using System.Linq;
 namespace Generation.Core
 {
     /// <summary>
-    /// Builds a DungeonLayout from a GenerationRequest: layout -> doors/loops -> typing -> validate.
-    /// Template selection and enemy/loot budgets are not part of this stage (see RoomNode.TemplateId etc.,
-    /// left at their defaults here and filled in by later pipeline stages).
+    /// Builds a DungeonLayout from a GenerationRequest: layout -> doors/loops -> typing -> templates -> validate.
+    /// Enemy/loot budgets (pipeline step 5) are not part of this stage.
     /// Pure data/algorithms: no UnityEngine, no UnityEngine.Random.
     /// </summary>
     public static class DungeonGenerator
@@ -15,14 +14,14 @@ namespace Generation.Core
         const string TypingStep = "typing";
         const string LoopsStep = "loops";
 
-        public static DungeonLayout Generate(GenerationRequest request)
+        public static DungeonLayout Generate(GenerationRequest request, IReadOnlyList<RoomTemplate> templates)
         {
             string lastFailure = "unknown";
             for (var attempt = 0; attempt < request.MaxGenerationAttempts; attempt++)
             {
                 try
                 {
-                    return GenerateAttempt(request, attempt);
+                    return GenerateAttempt(request, attempt, templates);
                 }
                 catch (RetryableGenerationException ex)
                 {
@@ -35,7 +34,7 @@ namespace Generation.Core
                 $"Seed={request.Seed}, DungeonIndex={request.DungeonIndex}. Last failure: {lastFailure}");
         }
 
-        static DungeonLayout GenerateAttempt(GenerationRequest request, int attempt)
+        static DungeonLayout GenerateAttempt(GenerationRequest request, int attempt, IReadOnlyList<RoomTemplate> templates)
         {
             var rooms = new List<RoomNode>();
             var doors = new List<DoorLink>();
@@ -59,6 +58,8 @@ namespace Generation.Core
                 StartRoomId = rooms[0].Id,
                 BossRoomId = rooms.First(r => r.Type == RoomType.Boss).Id,
             };
+
+            TemplateSelector.AssignTemplates(request, attempt, layout, templates);
 
             var violations = DungeonValidator.Validate(layout);
             if (violations.Count > 0)

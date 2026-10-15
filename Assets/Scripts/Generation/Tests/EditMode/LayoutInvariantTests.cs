@@ -11,7 +11,7 @@ namespace Generation.Tests
         {
             for (var seed = 0; seed < 50; seed++)
             {
-                var layout = DungeonGenerator.Generate(TestRequests.Default(seed, 4));
+                var layout = DungeonGenerator.Generate(TestRequests.Default(seed, 4), TemplateTestLibrary.Load());
                 var starts = layout.Rooms.Where(r => r.Type == RoomType.Start).ToList();
                 Assert.AreEqual(1, starts.Count, $"seed={seed}");
                 Assert.AreEqual(RoomShape.Small, starts[0].Shape, $"seed={seed}");
@@ -24,7 +24,7 @@ namespace Generation.Tests
         {
             for (var seed = 0; seed < 50; seed++)
             {
-                var layout = DungeonGenerator.Generate(TestRequests.Default(seed, 5));
+                var layout = DungeonGenerator.Generate(TestRequests.Default(seed, 5), TemplateTestLibrary.Load());
                 var bosses = layout.Rooms.Where(r => r.Type == RoomType.Boss).ToList();
                 Assert.AreEqual(1, bosses.Count, $"seed={seed}");
 
@@ -49,7 +49,7 @@ namespace Generation.Tests
         {
             for (var seed = 0; seed < 100; seed++)
             {
-                var layout = DungeonGenerator.Generate(TestRequests.Default(seed, 4));
+                var layout = DungeonGenerator.Generate(TestRequests.Default(seed, 4), TemplateTestLibrary.Load());
                 var startNeighbors = new System.Collections.Generic.HashSet<int>(GraphUtils.NeighborsOf(layout.StartRoomId, layout.Doors));
 
                 foreach (var type in new[] { RoomType.Treasure, RoomType.Shop, RoomType.Npc })
@@ -75,7 +75,7 @@ namespace Generation.Tests
             for (var s = 0; s < 50; s++)
             {
                 always.Seed = 10_000 + s;
-                var layout = DungeonGenerator.Generate(always);
+                var layout = DungeonGenerator.Generate(always, TemplateTestLibrary.Load());
                 var counts = new[] { RoomType.Treasure, RoomType.Shop, RoomType.Npc }
                     .Select(t => layout.Rooms.Count(r => r.Type == t)).ToList();
                 if (counts.All(c => c == 1)) sawAllThree = true;
@@ -87,7 +87,7 @@ namespace Generation.Tests
             for (var s = 0; s < 50; s++)
             {
                 never.Seed = 20_000 + s;
-                var layout = DungeonGenerator.Generate(never);
+                var layout = DungeonGenerator.Generate(never, TemplateTestLibrary.Load());
                 Assert.IsFalse(layout.Rooms.Any(r => r.Type.IsSpecial()), $"seed={never.Seed}");
             }
         }
@@ -99,7 +99,7 @@ namespace Generation.Tests
             {
                 var request = TestRequests.Default(seed, 6);
                 request.LoopChance = 0.5f;
-                var layout = DungeonGenerator.Generate(request);
+                var layout = DungeonGenerator.Generate(request, TemplateTestLibrary.Load());
 
                 var pairCounts = new System.Collections.Generic.Dictionary<(int, int), int>();
                 foreach (var door in layout.Doors)
@@ -131,7 +131,7 @@ namespace Generation.Tests
                 request.ShapeWeights = TestRequests.CorridorHeavyWeights();
                 try
                 {
-                    var layout = DungeonGenerator.Generate(request);
+                    var layout = DungeonGenerator.Generate(request, TemplateTestLibrary.Load());
                     var violations = DungeonValidator.Validate(layout);
                     Assert.IsEmpty(violations, $"seed={request.Seed}: {string.Join("; ", violations)}");
                     corridorsSeen += layout.Rooms.Count(r => ShapeDefinition.IsCorridor(r.Shape));
@@ -157,7 +157,7 @@ namespace Generation.Tests
                 var request = TestRequests.Default(5000 + seed, 5);
                 request.LoopChance = 0f;
                 request.ShapeWeights = TestRequests.NoCorridorWeights();
-                var layout = DungeonGenerator.Generate(request);
+                var layout = DungeonGenerator.Generate(request, TemplateTestLibrary.Load());
                 Assert.AreEqual(layout.Rooms.Count - 1, layout.Doors.Count, $"seed={request.Seed}");
             }
         }

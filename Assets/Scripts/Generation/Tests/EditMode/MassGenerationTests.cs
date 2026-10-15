@@ -18,7 +18,7 @@ namespace Generation.Tests
                     DungeonLayout layout;
                     try
                     {
-                        layout = DungeonGenerator.Generate(request);
+                        layout = DungeonGenerator.Generate(request, TemplateTestLibrary.Load());
                     }
                     catch (GenerationException ex)
                     {

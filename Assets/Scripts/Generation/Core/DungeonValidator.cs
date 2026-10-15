@@ -103,6 +103,11 @@ namespace Generation.Core
                     violations.Add($"Loop door {door.RoomA}-{door.RoomB} touches a special room.");
             }
 
+            // Every room has a template assigned (pipeline step 4).
+            foreach (var room in rooms)
+                if (room.TemplateId < 0)
+                    violations.Add($"Room {room.Id} has no template assigned.");
+
             // Corridors: a door in each of its 2 chunks, and at least 2 distinct neighbors.
             foreach (var room in rooms.Where(r => ShapeDefinition.IsCorridor(r.Shape)))
             {
