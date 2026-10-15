@@ -1,0 +1,51 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 79845247c6dc470a8756fc3491a168d5, type: 3}
+  m_Name: PropLibrary
+  m_EditorClassIdentifier: Generation.Runtime::Generation.Runtime.PropLibrary
+  entries:
+  - propClass: 0
+    width: 1
+    height: 1
+    weight: 1
+    variants:
+    - {fileID: 2726788773864064019, guid: 721b9b0f060f34a879445ab94dd9130f, type: 3}
+  - propClass: 0
+    width: 2
+    height: 2
+    weight: 1.5
+    variants:
+    - {fileID: 1550957461629365552, guid: 41dfcbc9a285e4184b96f6836a54b5d9, type: 3}
+  - propClass: 0
+    width: 3
+    height: 1
+    weight: 1
+    variants:
+    - {fileID: 508467075686435486, guid: 880a9b4d9c84f49a5a8032486f727cfc, type: 3}
+  - propClass: 0
+    width: 1
+    height: 3
+    weight: 1
+    variants:
+    - {fileID: 2978044748653899425, guid: f77133ee1e2024056b40e0aa64fcabd3, type: 3}
+  - propClass: 1
+    width: 1
+    height: 1
+    weight: 1
+    variants:
+    - {fileID: 3616369257991709600, guid: f9f035571b095411a8ccfe71900a7ef2, type: 3}
+  - propClass: 1
+    width: 2
+    height: 2
+    weight: 1
+    variants:
+    - {fileID: 9204715677996778005, guid: 79c66e150d54d44cb9bd9816158107c3, type: 3}
