@@ -9,6 +9,14 @@ namespace Generation.Runtime
     /// <summary>Builds the room GameObjects (tilemaps, walls, props) for a DungeonLayout. No spawning yet (stage 4).</summary>
     public sealed class DungeonBuilder : MonoBehaviour
     {
+        /// <summary>
+        /// Sorting order shared by props and characters, strictly above Floor/FloorDecor/Walls.
+        /// Transparency Sort Mode = Custom Axis (Y) only breaks ties *within* the same sortingOrder bucket;
+        /// it never overrides sortingOrder itself. Without this gap, floor tiles and the player share
+        /// order 0 and the Y-sort tie-break can put the floor on top of the player.
+        /// </summary>
+        public const int ActorSortingOrder = 3;
+
         [Header("Libraries")]
         public TemplateLibrary templateLibrary;
         public PropLibrary propLibrary;
@@ -114,8 +122,6 @@ namespace Generation.Runtime
             return tilemap;
         }
 
-        static readonly HashSet<char> FloorLike = new HashSet<char> { '.', ',', 'E', 'L', 'S' };
-
         void PaintFloorAndDecor(Tilemap floor, Tilemap floorDecor, char[,] grid2D, int w, int h, int anchorTileX, int anchorTileY, Rng rng)
         {
             for (var tx = 0; tx < w; tx++)
@@ -196,6 +202,8 @@ namespace Generation.Runtime
                 var worldY = anchorTileY + p.Y + p.Height / 2f;
                 var instance = Instantiate(prefab, new Vector3(worldX, worldY, 0f), Quaternion.identity, controller.Props);
                 instance.name = $"{propClass}_{p.X}_{p.Y}";
+                foreach (var sr in instance.GetComponentsInChildren<SpriteRenderer>())
+                    sr.sortingOrder = ActorSortingOrder;
             }
         }
 

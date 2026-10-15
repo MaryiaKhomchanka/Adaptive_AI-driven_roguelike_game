@@ -9,6 +9,7 @@ namespace Generation.Runtime
         public DungeonBuilder builder;
         public GenerationConfig config;
         public Transform player;
+        public RoomCamera roomCamera;
 
         [Header("Run state")]
         public int dungeonIndex = 1;
@@ -36,6 +37,13 @@ namespace Generation.Runtime
             var bounds = startRoom.TileBounds;
             var center = new Vector3(bounds.x + bounds.width / 2f, bounds.y + bounds.height / 2f, 0f);
             player.position = center;
+
+            if (roomCamera != null)
+            {
+                roomCamera.target = player;
+                var camPos = roomCamera.transform.position;
+                roomCamera.transform.position = new Vector3(center.x, center.y, camPos.z); // snap, don't lag, right after a (re)generate
+            }
         }
     }
 }

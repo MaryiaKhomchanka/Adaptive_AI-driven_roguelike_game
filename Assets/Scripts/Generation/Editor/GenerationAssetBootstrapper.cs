@@ -108,6 +108,7 @@ namespace Generation.Editor
                 cam.clearFlags = CameraClearFlags.SolidColor;
                 camera.transform.position = new Vector3(0, 0, -10);
                 camera.tag = "MainCamera";
+                var roomCamera = camera.AddComponent<RoomCamera>();
 
                 var dungeonGO = new GameObject("Dungeon");
                 SceneManager.MoveGameObjectToScene(dungeonGO, scene);
@@ -126,6 +127,7 @@ namespace Generation.Editor
                 runner.builder = builder;
                 runner.config = config;
                 runner.player = player != null ? player.transform : null;
+                runner.roomCamera = roomCamera;
 
                 EditorSceneManager.SaveScene(scene, ScenePath);
             }
@@ -163,6 +165,8 @@ namespace Generation.Editor
                     var collider = clone.AddComponent<CircleCollider2D>();
                     collider.radius = 0.3f;
                 }
+                foreach (var sr in clone.GetComponentsInChildren<SpriteRenderer>())
+                    sr.sortingOrder = DungeonBuilder.ActorSortingOrder;
 
                 return clone;
             }

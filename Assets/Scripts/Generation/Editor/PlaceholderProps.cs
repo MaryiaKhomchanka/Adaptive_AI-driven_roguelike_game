@@ -1,3 +1,4 @@
+using Generation.Runtime;
 using UnityEditor;
 using UnityEngine;
 
@@ -35,6 +36,7 @@ namespace Generation.Editor
                 renderer.sprite = sprite;
                 renderer.drawMode = SpriteDrawMode.Tiled;
                 renderer.size = new Vector2(width, height);
+                renderer.sortingOrder = DungeonBuilder.ActorSortingOrder;
 
                 if (hasCollider)
                 {
