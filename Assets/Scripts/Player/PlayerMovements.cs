@@ -6,7 +6,9 @@ public class PlayerMovements : MonoBehaviour
     [SerializeField] private float moveSpeed = 5f;
     private Rigidbody2D rigidBody; 
     private Vector2 moveInput;
+    public Vector2 FaceDirection { get; private set; } = Vector2.down;
     private Animator animator;
+    private bool canMove = true;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -18,26 +20,18 @@ public class PlayerMovements : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        rigidBody.linearVelocity = moveInput * moveSpeed;
-
-        if (Keyboard.current.hKey.wasPressedThisFrame)
+        if (canMove)
         {
-            animator.SetTrigger("Hurt");
-        }
-
-        if (Keyboard.current.fKey.wasPressedThisFrame)
-        {
-            animator.SetTrigger("Attack");
-        }
-
-        if (Keyboard.current.yKey.wasPressedThisFrame)
-        {
-            animator.SetTrigger("Dead");
+            rigidBody.linearVelocity = moveInput * moveSpeed;
         }
     }
 
     public void Move(InputAction.CallbackContext context)
     {
+        if (!canMove)
+        {
+            return; 
+        }
         moveInput = context.ReadValue<Vector2>();
 
         animator.SetBool("isMoving", moveInput != Vector2.zero);
@@ -46,10 +40,19 @@ public class PlayerMovements : MonoBehaviour
 
         if (moveInput != Vector2.zero)
         {
+            FaceDirection = moveInput.normalized;
+
             animator.SetFloat("LastX", moveInput.x);
             animator.SetFloat("LastY", moveInput.y);
         }
-      
-       
+    }
+
+    public void DisableMovement()
+    {
+        canMove = false;
+        moveInput = Vector2.zero;
+        rigidBody.linearVelocity = Vector2.zero;
+
+        animator.SetBool("isMoving", false); 
     }
 }
