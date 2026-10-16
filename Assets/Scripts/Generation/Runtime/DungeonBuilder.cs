@@ -203,7 +203,7 @@ namespace Generation.Runtime
         {
             var originX = door.ChunkA.X * ShapeDefinition.ChunkTiles;
             var originY = door.ChunkA.Y * ShapeDefinition.ChunkTiles;
-            const float along = 7.5f; // midpoint of local tiles 7 and 8
+            const float along = 8f; // true center of the 2-tile opening (tile 7 spans [7,8), tile 8 spans [8,9))
             const float chunkEdge = ShapeDefinition.ChunkTiles;
 
             switch (door.SideA)
