@@ -6,6 +6,7 @@ public class PlayerMovements : MonoBehaviour
     [SerializeField] private float moveSpeed = 5f;
     private Rigidbody2D rigidBody; 
     private Vector2 moveInput;
+    public Vector2 FaceDirection { get; private set; } = Vector2.down;
     private Animator animator;
     private bool canMove = true;
 
@@ -39,6 +40,8 @@ public class PlayerMovements : MonoBehaviour
 
         if (moveInput != Vector2.zero)
         {
+            FaceDirection = moveInput.normalized;
+
             animator.SetFloat("LastX", moveInput.x);
             animator.SetFloat("LastY", moveInput.y);
         }

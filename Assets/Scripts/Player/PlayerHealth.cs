@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class PlayerHealth : MonoBehaviour
+public class PlayerHealth : MonoBehaviour, IDamageable
 {
     [SerializeField] private int maxHealth = 5;
     [SerializeField] private HeartUI heartUI;
