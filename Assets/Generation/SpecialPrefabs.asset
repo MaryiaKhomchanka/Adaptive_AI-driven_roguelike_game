@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5ca8780890ef43efbdc7898aca864281, type: 3}
+  m_Name: SpecialPrefabs
+  m_EditorClassIdentifier: Generation.Runtime::Generation.Runtime.SpecialPrefabs
+  treasureChest: {fileID: 6802636009841921800, guid: 3808299f33ada4c72b6050391876ab2d, type: 3}
+  shopVendor: {fileID: 2276152271119440094, guid: 7e866aff5358e48d28d537a387dfccce, type: 3}
+  npc: {fileID: 5937942270699112695, guid: a6bd5b9d946cd4ec384481f4aa95f043, type: 3}
+  boss: {fileID: 8631976593576731727, guid: 567af4f0ae0f6456c8af90453a68ec36, type: 3}
+  portal: {fileID: 4095155929244160617, guid: 2de9cb39581ab4443843667fd122e85f, type: 3}
