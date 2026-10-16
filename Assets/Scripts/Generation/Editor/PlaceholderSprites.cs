@@ -63,12 +63,19 @@ namespace Generation.Editor
             var importer = (TextureImporter)AssetImporter.GetAtPath(path);
             importer.textureType = TextureImporterType.Sprite;
             importer.spriteImportMode = SpriteImportMode.Single;
-            importer.spriteMeshType = SpriteMeshType.FullRect; // PlaceholderProps tiles some of these (SpriteDrawMode.Tiled), which needs a full-rect mesh
             importer.spritePixelsPerUnit = 32;
             importer.filterMode = FilterMode.Point;
             importer.mipmapEnabled = false;
             importer.textureCompression = TextureImporterCompression.Uncompressed;
             importer.alphaIsTransparency = true;
+
+            // spriteMeshType isn't a direct TextureImporter property; PlaceholderProps tiles some of these
+            // (SpriteDrawMode.Tiled), which needs a full-rect mesh instead of the tight default.
+            var settings = new TextureImporterSettings();
+            importer.ReadTextureSettings(settings);
+            settings.spriteMeshType = SpriteMeshType.FullRect;
+            importer.SetTextureSettings(settings);
+
             importer.SaveAndReimport();
 
             return AssetDatabase.LoadAssetAtPath<Sprite>(path);
