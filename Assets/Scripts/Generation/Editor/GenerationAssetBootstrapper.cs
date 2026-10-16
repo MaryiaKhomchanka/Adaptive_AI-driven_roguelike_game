@@ -57,7 +57,7 @@ namespace Generation.Editor
             var lootTable = BuildLootTable(specials);
             var specialPrefabs = BuildSpecialPrefabs(specials);
 
-            BuildTestScene(config, templateLibrary, propLibrary, enemyTable, lootTable, specialPrefabs, tiles);
+            BuildTestScene(config, templateLibrary, propLibrary, enemyTable, lootTable, specialPrefabs, tiles, sprites);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -139,7 +139,8 @@ namespace Generation.Editor
 
         static void BuildTestScene(
             GenerationConfig config, TemplateLibrary templateLibrary, PropLibrary propLibrary,
-            EnemySpawnTable enemyTable, LootTable lootTable, SpecialPrefabs specialPrefabs, PlaceholderTiles.Result tiles)
+            EnemySpawnTable enemyTable, LootTable lootTable, SpecialPrefabs specialPrefabs,
+            PlaceholderTiles.Result tiles, PlaceholderSprites.Result sprites)
         {
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
             try
@@ -166,6 +167,7 @@ namespace Generation.Editor
                 builder.floorVariants = tiles.FloorVariants;
                 builder.floorDecorTile = tiles.FloorDecor;
                 builder.wallTile = tiles.Wall;
+                builder.doorFrameSprite = sprites.DoorFrame;
 
                 var player = ClonePlayerFromSampleScene(scene);
 

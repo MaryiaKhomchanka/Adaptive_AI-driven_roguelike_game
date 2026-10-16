@@ -12,7 +12,10 @@ namespace Generation.Runtime
     /// <summary>
     /// Spec section 11: built from DungeonLayout, no second camera. One chunk = a square; a room's chunks sit
     /// flush against each other (no seam) while different rooms keep a gap, by using each room's own minimum
-    /// chunk as a local origin inside the shared (gapped) chunk grid.
+    /// chunk as a local origin inside the shared (gapped) chunk grid. All positions are chunk *centers* -
+    /// RectTransforms default to a center pivot, so corner-based math here would visibly offset everything
+    /// toward one corner (which is what made icons/dot look pinned to a chunk's corner before this fix).
+    /// Icons are pooled per room (fixed 6 slots, toggled) rather than destroyed/recreated on every refresh.
     /// </summary>
     public sealed class MinimapController : MonoBehaviour
     {
@@ -21,9 +24,9 @@ namespace Generation.Runtime
         public Transform player;
 
         [Header("Layout")]
-        public RectTransform content; // centered on the current room each time it changes
-        public float chunkSize = 14f;
-        public float chunkGap = 2f;
+        public RectTransform content;
+        public float chunkSize = 26f;
+        public float chunkGap = 3f;
         public bool showDoorConnectors = true;
         public bool revealBossRoom = true;
 
@@ -43,8 +46,14 @@ namespace Generation.Runtime
         public Color bossIconColor = new Color32(140, 20, 20, 255);
         public float iconSize = 5f;
 
+        static readonly RoomMemberKind[] IconKinds =
+        {
+            RoomMemberKind.Enemy, RoomMemberKind.Loot, RoomMemberKind.Treasure,
+            RoomMemberKind.Shop, RoomMemberKind.Npc, RoomMemberKind.Boss,
+        };
+
         readonly Dictionary<int, List<Image>> roomChunkImages = new Dictionary<int, List<Image>>();
-        readonly Dictionary<int, RectTransform> roomIconRows = new Dictionary<int, RectTransform>();
+        readonly Dictionary<int, Image[]> roomIconPool = new Dictionary<int, Image[]>();
         readonly Dictionary<int, Vector2> roomCenters = new Dictionary<int, Vector2>();
         RectTransform playerDot;
         DungeonLayout layout;
@@ -98,7 +107,7 @@ namespace Generation.Runtime
         {
             foreach (Transform child in content) Destroy(child.gameObject);
             roomChunkImages.Clear();
-            roomIconRows.Clear();
+            roomIconPool.Clear();
             roomCenters.Clear();
 
             foreach (var room in layout.Rooms)
@@ -109,39 +118,38 @@ namespace Generation.Runtime
 
                 foreach (var chunk in room.Chunks)
                 {
-                    var go = new GameObject($"Chunk_{room.Id}_{chunk.X}_{chunk.Y}", typeof(RectTransform));
-                    go.transform.SetParent(content, false);
-                    var rt = (RectTransform)go.transform;
-                    rt.sizeDelta = new Vector2(chunkSize, chunkSize);
-                    rt.anchoredPosition = RoomLocalOrigin(minX, minY) + new Vector2(chunk.X - minX, chunk.Y - minY) * chunkSize;
-                    var image = go.AddComponent<Image>();
-                    image.raycastTarget = false;
+                    var image = CreateImage($"Chunk_{room.Id}_{chunk.X}_{chunk.Y}", content, new Vector2(chunkSize, chunkSize));
+                    image.rectTransform.anchoredPosition = ChunkCenterLocal(minX, minY, chunk.X, chunk.Y);
                     images.Add(image);
                 }
-
                 roomChunkImages[room.Id] = images;
 
                 var centerLocal = new Vector2(
-                    room.Chunks.Average(c => c.X - minX + 0.5f),
-                    room.Chunks.Average(c => c.Y - minY + 0.5f)) * chunkSize + RoomLocalOrigin(minX, minY);
+                    room.Chunks.Average(c => c.X - minX),
+                    room.Chunks.Average(c => c.Y - minY)) * chunkSize + RoomLocalOrigin(minX, minY) + Vector2.one * chunkSize / 2f;
                 roomCenters[room.Id] = centerLocal;
 
                 var iconRowGO = new GameObject($"Icons_{room.Id}", typeof(RectTransform));
                 iconRowGO.transform.SetParent(content, false);
-                var iconRow = (RectTransform)iconRowGO.transform;
-                iconRow.anchoredPosition = centerLocal;
-                roomIconRows[room.Id] = iconRow;
+                ((RectTransform)iconRowGO.transform).anchoredPosition = centerLocal;
+
+                var pool = new Image[IconKinds.Length];
+                var startX = -(IconKinds.Length - 1) * iconSize / 2f;
+                for (var i = 0; i < IconKinds.Length; i++)
+                {
+                    var icon = CreateImage("Icon", iconRowGO.transform, new Vector2(iconSize, iconSize));
+                    icon.rectTransform.anchoredPosition = new Vector2(startX + i * iconSize, 0);
+                    icon.gameObject.SetActive(false);
+                    pool[i] = icon;
+                }
+                roomIconPool[room.Id] = pool;
             }
 
             if (showDoorConnectors) BuildDoorConnectors();
 
-            var dotGO = new GameObject("PlayerDot", typeof(RectTransform));
-            dotGO.transform.SetParent(content, false);
-            playerDot = (RectTransform)dotGO.transform;
-            playerDot.sizeDelta = new Vector2(iconSize, iconSize);
-            var dotImage = dotGO.AddComponent<Image>();
+            var dotImage = CreateImage("PlayerDot", content, new Vector2(iconSize, iconSize));
             dotImage.color = Color.cyan;
-            dotImage.raycastTarget = false;
+            playerDot = dotImage.rectTransform;
 
             RecenterOnCurrentRoom();
             RefreshStatesAndIcons();
@@ -154,28 +162,39 @@ namespace Generation.Runtime
                 var roomA = layout.Rooms.First(r => r.Id == door.RoomA);
                 var minXA = roomA.Chunks.Min(c => c.X);
                 var minYA = roomA.Chunks.Min(c => c.Y);
-                var chunkAPos = RoomLocalOrigin(minXA, minYA) + new Vector2(door.ChunkA.X - minXA, door.ChunkA.Y - minYA) * chunkSize;
+                var chunkACenter = ChunkCenterLocal(minXA, minYA, door.ChunkA.X, door.ChunkA.Y);
 
-                var go = new GameObject($"Door_{door.RoomA}_{door.RoomB}", typeof(RectTransform));
-                go.transform.SetParent(content, false);
-                var rt = (RectTransform)go.transform;
                 var isHorizontal = door.SideA == Dir.N || door.SideA == Dir.S;
-                rt.sizeDelta = isHorizontal ? new Vector2(chunkSize * 0.4f, chunkGap) : new Vector2(chunkGap, chunkSize * 0.4f);
+                var image = CreateImage($"Door_{door.RoomA}_{door.RoomB}", content,
+                    isHorizontal ? new Vector2(chunkSize * 0.4f, chunkGap) : new Vector2(chunkGap, chunkSize * 0.4f));
+                image.color = doorConnectorColor;
 
+                var halfStep = (chunkSize + chunkGap) / 2f;
                 var offset = door.SideA switch
                 {
-                    Dir.N => new Vector2(chunkSize / 2f, chunkSize + chunkGap / 2f),
-                    Dir.S => new Vector2(chunkSize / 2f, -chunkGap / 2f),
-                    Dir.E => new Vector2(chunkSize + chunkGap / 2f, chunkSize / 2f),
-                    _ => new Vector2(-chunkGap / 2f, chunkSize / 2f),
+                    Dir.N => new Vector2(0, halfStep),
+                    Dir.S => new Vector2(0, -halfStep),
+                    Dir.E => new Vector2(halfStep, 0),
+                    _ => new Vector2(-halfStep, 0),
                 };
-                rt.anchoredPosition = chunkAPos + offset;
-
-                var image = go.AddComponent<Image>();
-                image.color = doorConnectorColor;
-                image.raycastTarget = false;
+                image.rectTransform.anchoredPosition = chunkACenter + offset;
             }
         }
+
+        static Image CreateImage(string name, Transform parent, Vector2 size)
+        {
+            var go = new GameObject(name, typeof(RectTransform), typeof(Image));
+            go.transform.SetParent(parent, false);
+            var image = go.GetComponent<Image>();
+            image.raycastTarget = false;
+            image.rectTransform.sizeDelta = size;
+            return image;
+        }
+
+        /// <summary>Pixel-space center of one chunk, in a room-independent grid where different rooms' chunks
+        /// are chunkGap apart but a single room's own chunks are exactly chunkSize apart (no seam).</summary>
+        Vector2 ChunkCenterLocal(int roomMinX, int roomMinY, int chunkX, int chunkY) =>
+            RoomLocalOrigin(roomMinX, roomMinY) + new Vector2(chunkX - roomMinX, chunkY - roomMinY) * chunkSize + Vector2.one * chunkSize / 2f;
 
         Vector2 RoomLocalOrigin(int minChunkX, int minChunkY) =>
             new Vector2(minChunkX, minChunkY) * (chunkSize + chunkGap);
@@ -231,37 +250,44 @@ namespace Generation.Runtime
             }
         }
 
+        /// <summary>HasBeenVisited (not State != Unvisited): a room can be pre-warmed - rendered active a tile
+        /// early so there's no pop - well before the player has actually set foot in it. Using Prewarm's state
+        /// here was exactly what made the minimap and fog of war reveal a room before the player had entered it.</summary>
         bool IsVisited(int roomId) =>
-            builder != null && builder.RoomsById.TryGetValue(roomId, out var rc) && rc.State != RoomState.Unvisited;
+            builder != null && builder.RoomsById.TryGetValue(roomId, out var rc) && rc.HasBeenVisited;
 
         void RefreshIcons(RoomNode room, bool show)
         {
-            var row = roomIconRows[room.Id];
-            foreach (Transform child in row) Destroy(child.gameObject);
-            if (!show) return;
-
-            var slots = new (bool present, Color color)[]
+            var pool = roomIconPool[room.Id];
+            for (var i = 0; i < IconKinds.Length; i++)
             {
-                (RoomActivity.GetCount(room.Id, RoomMemberKind.Enemy) > 0, enemyIconColor),
-                (RoomActivity.GetCount(room.Id, RoomMemberKind.Loot) > 0, lootIconColor),
-                (RoomActivity.GetCount(room.Id, RoomMemberKind.Treasure) > 0, treasureIconColor),
-                (RoomActivity.GetCount(room.Id, RoomMemberKind.Shop) > 0, shopIconColor),
-                (RoomActivity.GetCount(room.Id, RoomMemberKind.Npc) > 0, npcIconColor),
-                (RoomActivity.GetCount(room.Id, RoomMemberKind.Boss) > 0, bossIconColor),
-            };
+                var present = show && RoomActivity.GetCount(room.Id, IconKinds[i]) > 0;
+                pool[i].gameObject.SetActive(present);
+            }
 
-            var active = slots.Where(s => s.present).ToList();
-            var startX = -(active.Count - 1) * iconSize / 2f;
-            for (var i = 0; i < active.Count; i++)
+            // Re-pack visible icons so removed ones don't leave a gap in the row.
+            var visibleIndex = 0;
+            var visibleCount = pool.Count(p => p.gameObject.activeSelf);
+            var startX = -(visibleCount - 1) * iconSize / 2f;
+            foreach (var icon in pool)
             {
-                var go = new GameObject("Icon", typeof(RectTransform));
-                go.transform.SetParent(row, false);
-                var rt = (RectTransform)go.transform;
-                rt.sizeDelta = new Vector2(iconSize, iconSize);
-                rt.anchoredPosition = new Vector2(startX + i * iconSize, 0);
-                var icon = go.AddComponent<Image>();
-                icon.color = active[i].color;
-                icon.raycastTarget = false;
+                if (!icon.gameObject.activeSelf) continue;
+                icon.color = IconColor(System.Array.IndexOf(pool, icon));
+                icon.rectTransform.anchoredPosition = new Vector2(startX + visibleIndex * iconSize, 0);
+                visibleIndex++;
+            }
+        }
+
+        Color IconColor(int kindIndex)
+        {
+            switch (IconKinds[kindIndex])
+            {
+                case RoomMemberKind.Enemy: return enemyIconColor;
+                case RoomMemberKind.Loot: return lootIconColor;
+                case RoomMemberKind.Treasure: return treasureIconColor;
+                case RoomMemberKind.Shop: return shopIconColor;
+                case RoomMemberKind.Npc: return npcIconColor;
+                default: return bossIconColor;
             }
         }
 

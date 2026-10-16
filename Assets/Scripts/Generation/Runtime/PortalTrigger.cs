@@ -43,7 +43,7 @@ namespace Generation.Runtime
                     roomsCleared++;
             }
 
-            var roomsVisited = builder.RoomsById.Values.Count(rc => rc.State != RoomState.Unvisited);
+            var roomsVisited = builder.RoomsById.Values.Count(rc => rc.HasBeenVisited);
 
             return new DungeonSummary
             {

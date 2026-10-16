@@ -1,3 +1,4 @@
+using System.Collections;
 using Generation.Core;
 using UnityEngine;
 using UnityEngine.Tilemaps;
@@ -7,9 +8,14 @@ namespace Generation.Runtime
     public enum RoomState { Unvisited, Active, Frozen }
 
     /// <summary>
-    /// One built room's pieces, plus its fog-of-war state machine (spec 10.2):
-    /// Unvisited -(first Activate: spawn)-> Active (-)-> Frozen, Frozen -(Activate)-> Active.
-    /// Frozen = SetActive(false) on the whole room object, so physics/animation/AI stop and state is preserved for free.
+    /// One built room's pieces, plus its fog-of-war state machine (spec 10.2).
+    /// Two distinct moments, kept separate on purpose:
+    /// - Prewarm: SetActive(true) + fade in. Called early, from the door trigger at the room's edge, purely so
+    ///   geometry is rendered before the player actually arrives (no visual pop walking through the opening).
+    /// - EnterAsCurrent: spawning, RoomEntered, HasBeenVisited, EntryGrace. Called only once the player's
+    ///   position is actually inside this room (RoomTransitionController's 1-tile-inset check), so fog-of-war,
+    ///   the minimap and spawns can never happen earlier than the player stepping in.
+    /// Freeze fades out, then SetActive(false); physics/animation/AI stop once inactive and state is preserved for free.
     /// </summary>
     public sealed class RoomController : MonoBehaviour
     {
@@ -29,16 +35,31 @@ namespace Generation.Runtime
 
         public RoomState State { get; private set; } = RoomState.Unvisited;
 
-        float enteredAtTime;
+        /// <summary>True once the player has actually stood in this room (not merely prewarmed). Drives the minimap's Visited state.</summary>
+        public bool HasBeenVisited { get; private set; }
 
-        /// <summary>Set by DungeonBuilder; invoked exactly once, the first time this room is activated.</summary>
+        public float FadeSeconds = 0.25f;
+
+        float enteredAtTime;
+        Coroutine fadeRoutine;
+
+        /// <summary>Set by DungeonBuilder; invoked exactly once, the first time this room is entered as current.</summary>
         public System.Action<RoomController> OnFirstVisit;
 
-        public void Activate()
+        public void Prewarm()
         {
-            var isFirstVisit = State == RoomState.Unvisited;
+            if (State == RoomState.Active) return;
             gameObject.SetActive(true);
             State = RoomState.Active;
+            StartFade(0f, 1f);
+        }
+
+        public void EnterAsCurrent()
+        {
+            Prewarm(); // covers the Start room, which has no door trigger to prewarm it
+
+            var isFirstVisit = !HasBeenVisited;
+            HasBeenVisited = true;
             enteredAtTime = Time.time;
 
             if (isFirstVisit) OnFirstVisit?.Invoke(this);
@@ -52,7 +73,47 @@ namespace Generation.Runtime
             if (State != RoomState.Active) return;
             DungeonEvents.RaiseRoomExited(Room.Id, Time.time - enteredAtTime);
             State = RoomState.Frozen;
-            gameObject.SetActive(false);
+            StartFade(1f, 0f, () => gameObject.SetActive(false));
+        }
+
+        void StartFade(float from, float to, System.Action onComplete = null)
+        {
+            if (fadeRoutine != null) StopCoroutine(fadeRoutine);
+            fadeRoutine = StartCoroutine(FadeRoutine(from, to, onComplete));
+        }
+
+        IEnumerator FadeRoutine(float from, float to, System.Action onComplete)
+        {
+            var tilemaps = GetComponentsInChildren<Tilemap>(true);
+            var sprites = GetComponentsInChildren<SpriteRenderer>(true);
+
+            SetAlpha(tilemaps, sprites, from);
+            var t = 0f;
+            while (t < FadeSeconds)
+            {
+                t += Time.deltaTime;
+                SetAlpha(tilemaps, sprites, Mathf.Lerp(from, to, t / FadeSeconds));
+                yield return null;
+            }
+            SetAlpha(tilemaps, sprites, to);
+            fadeRoutine = null;
+            onComplete?.Invoke();
+        }
+
+        static void SetAlpha(Tilemap[] tilemaps, SpriteRenderer[] sprites, float alpha)
+        {
+            foreach (var tilemap in tilemaps)
+            {
+                var c = tilemap.color;
+                c.a = alpha;
+                tilemap.color = c;
+            }
+            foreach (var sprite in sprites)
+            {
+                var c = sprite.color;
+                c.a = alpha;
+                sprite.color = c;
+            }
         }
     }
 }

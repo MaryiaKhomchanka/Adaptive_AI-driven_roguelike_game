@@ -37,7 +37,7 @@ namespace Generation.Runtime
         {
             if (activeRoomIds.Contains(roomId)) return;
             if (!builder.RoomsById.TryGetValue(roomId, out var controller)) return;
-            controller.Activate();
+            controller.Prewarm();
             activeRoomIds.Add(roomId);
         }
 
@@ -66,15 +66,19 @@ namespace Generation.Runtime
         {
             CurrentRoomId = roomId;
 
+            if (!activeRoomIds.Contains(roomId)) ActivateRoom(roomId); // the Start room has no door trigger to prewarm it
+            if (builder.RoomsById.TryGetValue(roomId, out var current))
+            {
+                current.EnterAsCurrent();
+                if (roomCamera != null) roomCamera.RoomBounds = current.TileBounds;
+            }
+
             foreach (var id in activeRoomIds.ToList())
             {
                 if (id == roomId) continue;
                 if (builder.RoomsById.TryGetValue(id, out var rc)) rc.Freeze();
                 activeRoomIds.Remove(id);
             }
-
-            if (roomCamera != null && builder.RoomsById.TryGetValue(roomId, out var current))
-                roomCamera.RoomBounds = current.TileBounds;
         }
 
         static RectInt Inset(RectInt bounds, int amount)

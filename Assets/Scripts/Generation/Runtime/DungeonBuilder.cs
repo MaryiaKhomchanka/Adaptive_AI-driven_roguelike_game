@@ -30,6 +30,10 @@ namespace Generation.Runtime
         public TileBase floorDecorTile;
         public TileBase wallTile; // a RuleTile asset assigned here as TileBase
 
+        [Header("Doors")]
+        [Tooltip("Decorative only (spec 4: doors never close/lock); flanks each opening so it doesn't read as a plain hole in the wall.")]
+        public Sprite doorFrameSprite;
+
         public DungeonLayout CurrentLayout { get; private set; }
         public Dictionary<int, RoomController> RoomsById { get; } = new Dictionary<int, RoomController>();
 
@@ -97,8 +101,11 @@ namespace Generation.Runtime
             var anchorTileX = room.Anchor.X * ShapeDefinition.ChunkTiles;
             var anchorTileY = room.Anchor.Y * ShapeDefinition.ChunkTiles;
 
+            var openSides = OpenSidesOf(layout, room);
+
             PaintFloorAndDecor(floor, floorDecor, grid2D, w, h, anchorTileX, anchorTileY, Rng.ForStep(seed, $"tiles-{room.Id}"));
-            PaintWalls(walls, layout, room, anchorTileX, anchorTileY);
+            PaintWalls(walls, room, openSides);
+            PlaceDoorFrames(controller, room, openSides);
             PlaceProps(controller, grid2D, w, h, '#', PropClass.Obstacle, anchorTileX, anchorTileY, Rng.ForStep(seed, $"props-obstacle-{room.Id}"));
             PlaceProps(controller, grid2D, w, h, 'P', PropClass.SolidDecor, anchorTileX, anchorTileY, Rng.ForStep(seed, $"props-decor-{room.Id}"));
 
@@ -265,17 +272,22 @@ namespace Generation.Runtime
             }
         }
 
-        void PaintWalls(Tilemap walls, DungeonLayout layout, RoomNode room, int anchorTileX, int anchorTileY)
+        static HashSet<(Cell chunk, Dir side)> OpenSidesOf(DungeonLayout layout, RoomNode room)
         {
-            if (wallTile == null) return;
-
-            var ownChunks = new HashSet<Cell>(room.Chunks);
             var openSides = new HashSet<(Cell chunk, Dir side)>();
             foreach (var door in layout.Doors)
             {
                 if (door.RoomA == room.Id) openSides.Add((door.ChunkA, door.SideA));
                 else if (door.RoomB == room.Id) openSides.Add((door.ChunkA + door.SideA.Step(), door.SideA.Opposite()));
             }
+            return openSides;
+        }
+
+        void PaintWalls(Tilemap walls, RoomNode room, HashSet<(Cell chunk, Dir side)> openSides)
+        {
+            if (wallTile == null) return;
+
+            var ownChunks = new HashSet<Cell>(room.Chunks);
 
             foreach (var chunk in room.Chunks)
             {
@@ -306,6 +318,28 @@ namespace Generation.Runtime
                 case Dir.S: return (index, 0);
                 case Dir.E: return (last, index);
                 default: return (0, index); // W
+            }
+        }
+
+        void PlaceDoorFrames(RoomController controller, RoomNode room, HashSet<(Cell chunk, Dir side)> openSides)
+        {
+            if (doorFrameSprite == null) return;
+
+            foreach (var (chunk, side) in openSides)
+            {
+                foreach (var index in new[] { 6, 9 }) // flank the 2-tile opening (local 7,8) on each side
+                {
+                    var (lx, ly) = BorderLocalTile(side, index);
+                    var worldX = chunk.X * ShapeDefinition.ChunkTiles + lx + 0.5f;
+                    var worldY = chunk.Y * ShapeDefinition.ChunkTiles + ly + 0.5f;
+
+                    var go = new GameObject("DoorFrame");
+                    go.transform.SetParent(controller.Props, false);
+                    go.transform.position = new Vector3(worldX, worldY, 0f);
+                    var renderer = go.AddComponent<SpriteRenderer>();
+                    renderer.sprite = doorFrameSprite;
+                    renderer.sortingOrder = 2; // with the walls, not with actors - it's part of the frame, not something to walk behind/in front of
+                }
             }
         }
 
