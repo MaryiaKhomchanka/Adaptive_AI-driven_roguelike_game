@@ -4,7 +4,10 @@ using Generation.Runtime;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem.UI;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 namespace Generation.Editor
 {
@@ -196,12 +199,53 @@ namespace Generation.Editor
                 var debugInteract = debugGO.AddComponent<DebugInteract>();
                 debugInteract.player = player != null ? player.transform : null;
 
+                BuildCanvasAndMinimap(scene, builder, transitionController, player);
+
                 EditorSceneManager.SaveScene(scene, ScenePath);
             }
             finally
             {
                 EditorSceneManager.CloseScene(scene, true);
             }
+        }
+
+        static void BuildCanvasAndMinimap(Scene scene, DungeonBuilder builder, RoomTransitionController transitionController, GameObject player)
+        {
+            var canvasGO = new GameObject("Canvas", typeof(RectTransform));
+            SceneManager.MoveGameObjectToScene(canvasGO, scene);
+            var canvas = canvasGO.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvasGO.AddComponent<CanvasScaler>();
+            canvasGO.AddComponent<GraphicRaycaster>();
+
+            var eventSystemGO = new GameObject("EventSystem");
+            SceneManager.MoveGameObjectToScene(eventSystemGO, scene);
+            eventSystemGO.AddComponent<EventSystem>();
+            eventSystemGO.AddComponent<InputSystemUIInputModule>();
+
+            var panelGO = new GameObject("MinimapPanel", typeof(RectTransform));
+            panelGO.transform.SetParent(canvasGO.transform, false);
+            var panelRt = (RectTransform)panelGO.transform;
+            panelRt.anchorMin = panelRt.anchorMax = new Vector2(1, 1);
+            panelRt.pivot = new Vector2(1, 1);
+            panelRt.sizeDelta = new Vector2(200, 200);
+            panelRt.anchoredPosition = new Vector2(-10, -10);
+            var panelImage = panelGO.AddComponent<Image>();
+            panelImage.color = new Color(0, 0, 0, 0.5f);
+            panelGO.AddComponent<Mask>().showMaskGraphic = true;
+
+            var contentGO = new GameObject("Content", typeof(RectTransform));
+            contentGO.transform.SetParent(panelGO.transform, false);
+            var contentRt = (RectTransform)contentGO.transform;
+            contentRt.anchorMin = contentRt.anchorMax = new Vector2(0.5f, 0.5f);
+            contentRt.pivot = new Vector2(0.5f, 0.5f);
+            contentRt.sizeDelta = Vector2.zero;
+
+            var minimap = panelGO.AddComponent<MinimapController>();
+            minimap.builder = builder;
+            minimap.transitionController = transitionController;
+            minimap.player = player != null ? player.transform : null;
+            minimap.content = contentRt;
         }
 
         static GameObject ClonePlayerFromSampleScene(Scene targetScene)

@@ -5,7 +5,9 @@
         "Generation.Core",
         "Generation.Runtime",
         "Unity.2D.Tilemap.Extras",
-        "Unity.TextMeshPro"
+        "Unity.TextMeshPro",
+        "Unity.InputSystem",
+        "UnityEngine.UI"
     ],
     "includePlatforms": [
         "Editor"
