@@ -142,9 +142,18 @@ namespace Generation.Editor
             EnemySpawnTable enemyTable, LootTable lootTable, SpecialPrefabs specialPrefabs,
             PlaceholderTiles.Result tiles, PlaceholderSprites.Result sprites)
         {
-            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
+            // If GenerationTest.unity is already open (common while iterating), rebuild into it directly rather
+            // than creating a second scene that would save over the same path - trying to close that second
+            // scene afterwards is what Unity's "can't unload the last loaded scene" error came from.
+            var existing = SceneManager.GetSceneByPath(ScenePath);
+            var reusingOpenScene = existing.IsValid() && existing.isLoaded;
+            var scene = reusingOpenScene ? existing : EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
             try
             {
+                if (reusingOpenScene)
+                    foreach (var root in scene.GetRootGameObjects())
+                        Object.DestroyImmediate(root);
+
                 var camera = new GameObject("Main Camera");
                 SceneManager.MoveGameObjectToScene(camera, scene);
                 var cam = camera.AddComponent<Camera>();
@@ -207,7 +216,7 @@ namespace Generation.Editor
             }
             finally
             {
-                EditorSceneManager.CloseScene(scene, true);
+                if (!reusingOpenScene) EditorSceneManager.CloseScene(scene, true);
             }
         }
 

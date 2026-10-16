@@ -22,8 +22,8 @@ namespace Generation.Runtime
         [Tooltip("The camera is never allowed to lag more than this far behind the target; it snaps closer if it would.")]
         public float maxLag = 4f;
 
-        /// <summary>Current room's tile bounds, in world units (1 tile = 1 unit). Null = no clamping (e.g. before the first room is active).</summary>
-        public RectInt? RoomBounds;
+        /// <summary>Current room's tile bounds, in world units (1 tile = 1 unit). Null = no clamping (e.g. before the first room is active). Set at runtime only, not inspector-editable.</summary>
+        [System.NonSerialized] public RectInt? RoomBounds;
 
         Vector3 velocity;
         Camera cam;

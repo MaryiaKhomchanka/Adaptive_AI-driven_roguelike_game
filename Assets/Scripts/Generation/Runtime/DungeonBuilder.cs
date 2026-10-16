@@ -246,7 +246,7 @@ namespace Generation.Runtime
                 var rb = go.AddComponent<Rigidbody2D>();
                 rb.bodyType = RigidbodyType2D.Static;
                 var tilemapCollider = go.AddComponent<TilemapCollider2D>();
-                tilemapCollider.usedByComposite = true;
+                tilemapCollider.compositeOperation = Collider2D.CompositeOperation.Merge;
                 go.AddComponent<CompositeCollider2D>();
             }
 

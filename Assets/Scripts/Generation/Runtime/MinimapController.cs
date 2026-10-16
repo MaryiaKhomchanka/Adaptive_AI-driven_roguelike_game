@@ -79,13 +79,12 @@ namespace Generation.Runtime
 
         void Update()
         {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (Keyboard.current != null && Keyboard.current.mKey.wasPressedThisFrame)
+            // Debug.isDebugBuild covers the editor and development builds without the deprecated DEVELOPMENT_BUILD directive.
+            if (Debug.isDebugBuild && Keyboard.current != null && Keyboard.current.mKey.wasPressedThisFrame)
             {
                 revealAll = !revealAll;
                 RefreshStatesAndIcons();
             }
-#endif
             UpdatePlayerDot();
         }
 
@@ -125,8 +124,8 @@ namespace Generation.Runtime
                 roomChunkImages[room.Id] = images;
 
                 var centerLocal = new Vector2(
-                    room.Chunks.Average(c => c.X - minX),
-                    room.Chunks.Average(c => c.Y - minY)) * chunkSize + RoomLocalOrigin(minX, minY) + Vector2.one * chunkSize / 2f;
+                    (float)room.Chunks.Average(c => c.X - minX),
+                    (float)room.Chunks.Average(c => c.Y - minY)) * chunkSize + RoomLocalOrigin(minX, minY) + Vector2.one * chunkSize / 2f;
                 roomCenters[room.Id] = centerLocal;
 
                 var iconRowGO = new GameObject($"Icons_{room.Id}", typeof(RectTransform));

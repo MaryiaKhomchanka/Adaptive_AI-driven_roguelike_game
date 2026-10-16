@@ -63,6 +63,7 @@ namespace Generation.Editor
             var importer = (TextureImporter)AssetImporter.GetAtPath(path);
             importer.textureType = TextureImporterType.Sprite;
             importer.spriteImportMode = SpriteImportMode.Single;
+            importer.spriteMeshType = SpriteMeshType.FullRect; // PlaceholderProps tiles some of these (SpriteDrawMode.Tiled), which needs a full-rect mesh
             importer.spritePixelsPerUnit = 32;
             importer.filterMode = FilterMode.Point;
             importer.mipmapEnabled = false;
