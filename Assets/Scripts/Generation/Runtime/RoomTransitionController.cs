@@ -52,11 +52,14 @@ namespace Generation.Runtime
             foreach (var id in activeRoomIds)
             {
                 if (!builder.RoomsById.TryGetValue(id, out var rc)) continue;
-                if (!rc.TileBounds.Contains(pos)) continue;
+                // Inset by 1 tile: becoming "current" (and freezing the room just left) only once the player
+                // is a tile past the opening, not the instant they cross the shared chunk boundary - otherwise
+                // the old room's fog-of-war drops before the player has actually stepped into the new one.
+                if (!Inset(rc.TileBounds, 1).Contains(pos)) continue;
                 if (id != CurrentRoomId) SetCurrentRoom(id);
                 return;
             }
-            // Player is still inside a door opening, straddling two rooms: leave the current room as-is.
+            // Player is still within 1 tile of a door opening, straddling two rooms: leave the current room as-is.
         }
 
         void SetCurrentRoom(int roomId)
@@ -72,6 +75,13 @@ namespace Generation.Runtime
 
             if (roomCamera != null && builder.RoomsById.TryGetValue(roomId, out var current))
                 roomCamera.RoomBounds = current.TileBounds;
+        }
+
+        static RectInt Inset(RectInt bounds, int amount)
+        {
+            var size = Mathf.Max(0, bounds.width - amount * 2);
+            var height = Mathf.Max(0, bounds.height - amount * 2);
+            return new RectInt(bounds.x + amount, bounds.y + amount, size, height);
         }
     }
 }

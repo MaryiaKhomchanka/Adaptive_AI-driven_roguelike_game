@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace Generation.Runtime
 {
@@ -7,6 +8,7 @@ namespace Generation.Runtime
     /// <summary>
     /// Live counts of RoomMember instances per room/kind. Fires RoomCleared/RoomLooted/BossResolved when a
     /// count reaches zero, and backs the minimap's "does this room still have X" icons (stage 5).
+    /// Logs every register/remove: with no UI yet, the console is the only way to see room activity while testing.
     /// </summary>
     public static class RoomActivity
     {
@@ -18,12 +20,14 @@ namespace Generation.Runtime
         {
             var dict = GetDict(roomId);
             dict[kind] = dict.TryGetValue(kind, out var c) ? c + 1 : 1;
+            Debug.Log($"[Room {roomId}] {kind} spawned (now {dict[kind]})");
         }
 
         public static void ReportRemoved(int roomId, RoomMemberKind kind)
         {
             var dict = GetDict(roomId);
             if (dict.TryGetValue(kind, out var c) && c > 0) dict[kind] = c - 1;
+            Debug.Log($"[Room {roomId}] {kind} removed (remaining {GetCount(roomId, kind)})");
 
             switch (kind)
             {

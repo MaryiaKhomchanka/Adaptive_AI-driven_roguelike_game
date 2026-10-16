@@ -184,12 +184,17 @@ namespace Generation.Editor
                 runner.roomCamera = roomCamera;
                 runner.transitionController = transitionController;
 
-                var debugGO = new GameObject("DebugEnemyKiller");
+                var debugGO = new GameObject("Debug");
                 SceneManager.MoveGameObjectToScene(debugGO, scene);
+                debugGO.AddComponent<DebugEventLogger>();
+
                 var debugKiller = debugGO.AddComponent<DebugEnemyKiller>();
                 debugKiller.targetCamera = cam;
                 debugKiller.builder = builder;
                 debugKiller.transitionController = transitionController;
+
+                var debugInteract = debugGO.AddComponent<DebugInteract>();
+                debugInteract.player = player != null ? player.transform : null;
 
                 EditorSceneManager.SaveScene(scene, ScenePath);
             }
