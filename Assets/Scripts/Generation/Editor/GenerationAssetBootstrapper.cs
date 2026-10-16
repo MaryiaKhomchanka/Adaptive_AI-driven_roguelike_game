@@ -1,6 +1,7 @@
 using System.IO;
 using System.Linq;
 using Generation.Runtime;
+using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -210,7 +211,14 @@ namespace Generation.Editor
                 var debugInteract = debugGO.AddComponent<DebugInteract>();
                 debugInteract.player = player != null ? player.transform : null;
 
-                BuildCanvasAndMinimap(scene, builder, transitionController, player);
+                var canvasTransform = BuildCanvasAndMinimap(scene, builder, transitionController, player);
+                var bossPrompt = BuildBossPrompt(canvasTransform);
+
+                var doorInteractor = debugGO.AddComponent<DoorInteractor>();
+                doorInteractor.player = player != null ? player.transform : null;
+                doorInteractor.builder = builder;
+                doorInteractor.transitionController = transitionController;
+                doorInteractor.bossPrompt = bossPrompt;
 
                 EditorSceneManager.SaveScene(scene, ScenePath);
             }
@@ -220,7 +228,7 @@ namespace Generation.Editor
             }
         }
 
-        static void BuildCanvasAndMinimap(Scene scene, DungeonBuilder builder, RoomTransitionController transitionController, GameObject player)
+        static Transform BuildCanvasAndMinimap(Scene scene, DungeonBuilder builder, RoomTransitionController transitionController, GameObject player)
         {
             var canvasGO = new GameObject("Canvas", typeof(RectTransform));
             SceneManager.MoveGameObjectToScene(canvasGO, scene);
@@ -257,6 +265,35 @@ namespace Generation.Editor
             minimap.transitionController = transitionController;
             minimap.player = player != null ? player.transform : null;
             minimap.content = contentRt;
+
+            return canvasGO.transform;
+        }
+
+        static BossEntryPrompt BuildBossPrompt(Transform canvasTransform)
+        {
+            var panelGO = new GameObject("BossEntryPrompt", typeof(RectTransform));
+            panelGO.transform.SetParent(canvasTransform, false);
+            var panelRt = (RectTransform)panelGO.transform;
+            panelRt.anchorMin = panelRt.anchorMax = new Vector2(0.5f, 0.5f);
+            panelRt.sizeDelta = new Vector2(360, 90);
+            var panelImage = panelGO.AddComponent<Image>();
+            panelImage.color = new Color(0, 0, 0, 0.8f);
+
+            var labelGO = new GameObject("Label", typeof(RectTransform));
+            labelGO.transform.SetParent(panelGO.transform, false);
+            var labelRt = (RectTransform)labelGO.transform;
+            labelRt.anchorMin = Vector2.zero;
+            labelRt.anchorMax = Vector2.one;
+            labelRt.sizeDelta = Vector2.zero;
+            var label = labelGO.AddComponent<TextMeshProUGUI>();
+            label.text = "Дальше - комната босса. Войти?\nE - да, Q/Esc - нет";
+            label.alignment = TextAlignmentOptions.Center;
+            label.fontSize = 18;
+            label.color = Color.white;
+
+            var prompt = panelGO.AddComponent<BossEntryPrompt>();
+            prompt.panel = panelGO;
+            return prompt;
         }
 
         static GameObject ClonePlayerFromSampleScene(Scene targetScene)

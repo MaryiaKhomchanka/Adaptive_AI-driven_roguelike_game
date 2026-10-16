@@ -23,6 +23,7 @@ namespace Generation.Runtime
             CurrentLayout = layout;
             DungeonStartTime = Time.time;
             RoomActivity.Clear();
+            DoorLockRegistry.Clear();
             DungeonGenerated?.Invoke(layout);
         }
 
@@ -30,7 +31,11 @@ namespace Generation.Runtime
         public static void RaiseRoomExited(int roomId, float timeSpentSeconds) => RoomExited?.Invoke(roomId, timeSpentSeconds);
         public static void RaiseRoomCleared(int roomId) => RoomCleared?.Invoke(roomId);
         public static void RaiseRoomLooted(int roomId) => RoomLooted?.Invoke(roomId);
-        public static void RaiseBossResolved(int roomId) => BossResolved?.Invoke(roomId);
+        public static void RaiseBossResolved(int roomId)
+        {
+            DoorLockRegistry.Unlock(roomId); // the one door allowed to lock (spec), released once the boss is resolved
+            BossResolved?.Invoke(roomId);
+        }
         public static void RaiseDungeonCompleted(DungeonSummary summary) => DungeonCompleted?.Invoke(summary);
 
         /// <summary>Called by combat when the boss lets the player go without being destroyed (spec 6.4).</summary>

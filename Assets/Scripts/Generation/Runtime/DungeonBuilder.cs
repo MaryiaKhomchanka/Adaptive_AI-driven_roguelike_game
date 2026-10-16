@@ -6,7 +6,7 @@ using UnityEngine.Tilemaps;
 
 namespace Generation.Runtime
 {
-    /// <summary>Builds the room GameObjects (tilemaps, walls, props, door triggers) for a DungeonLayout, and
+    /// <summary>Builds the room GameObjects (tilemaps, walls, props, doors) for a DungeonLayout, and
     /// spawns enemies/loot/specials the first time a room is activated.</summary>
     public sealed class DungeonBuilder : MonoBehaviour
     {
@@ -31,7 +31,7 @@ namespace Generation.Runtime
         public TileBase wallTile; // a RuleTile asset assigned here as TileBase
 
         [Header("Doors")]
-        [Tooltip("Decorative only (spec 4: doors never close/lock); flanks each opening so it doesn't read as a plain hole in the wall.")]
+        [Tooltip("The door's visual. The door itself is always solid (DoorInteractor/E is the only way through, never by walking).")]
         public Sprite doorFrameSprite;
 
         public DungeonLayout CurrentLayout { get; private set; }
@@ -50,7 +50,7 @@ namespace Generation.Runtime
             foreach (var room in layout.Rooms)
                 RoomsById[room.Id] = BuildRoom(layout, room, request.Seed);
 
-            BuildDoorTriggers(layout);
+            BuildDoors(layout);
 
             DungeonEvents.RaiseDungeonGenerated(layout);
 
@@ -85,7 +85,7 @@ namespace Generation.Runtime
 
             var propsGO = NewChild(roomGO.transform, "Props");
             var spawnedGO = NewChild(roomGO.transform, "Spawned");
-            var doorTriggersGO = NewChild(roomGO.transform, "DoorTriggers");
+            var doorsGO = NewChild(roomGO.transform, "Doors");
 
             controller.Room = room;
             controller.Floor = floor;
@@ -93,7 +93,7 @@ namespace Generation.Runtime
             controller.Walls = walls;
             controller.Props = propsGO.transform;
             controller.Spawned = spawnedGO.transform;
-            controller.DoorTriggers = doorTriggersGO.transform;
+            controller.Doors = doorsGO.transform;
 
             var template = templateLibrary.Templates[room.TemplateId];
             var grid2D = TemplateTransformUtil.ApplyToGrid(template, room.TemplateTransform, out var w, out var h);
@@ -105,7 +105,6 @@ namespace Generation.Runtime
 
             PaintFloorAndDecor(floor, floorDecor, grid2D, w, h, anchorTileX, anchorTileY, Rng.ForStep(seed, $"tiles-{room.Id}"));
             PaintWalls(walls, room, openSides);
-            PlaceDoorFrames(controller, room, openSides);
             PlaceProps(controller, grid2D, w, h, '#', PropClass.Obstacle, anchorTileX, anchorTileY, Rng.ForStep(seed, $"props-obstacle-{room.Id}"));
             PlaceProps(controller, grid2D, w, h, 'P', PropClass.SolidDecor, anchorTileX, anchorTileY, Rng.ForStep(seed, $"props-decor-{room.Id}"));
 
@@ -186,19 +185,21 @@ namespace Generation.Runtime
             return result;
         }
 
-        void BuildDoorTriggers(DungeonLayout layout)
+        void BuildDoors(DungeonLayout layout)
         {
-            var transitionController = GetComponent<RoomTransitionController>();
-
             foreach (var door in layout.Doors)
             {
-                var (center, size) = DoorTriggerShape(door);
-                CreateDoorTrigger(RoomsById[door.RoomA], door.RoomA, door.RoomB, center, size, transitionController);
-                CreateDoorTrigger(RoomsById[door.RoomB], door.RoomA, door.RoomB, center, size, transitionController);
+                var (center, size) = DoorShape(door);
+                var into = DirVector(door.SideA); // points from RoomA into RoomB
+                var entryInB = center + into * 1.5f;
+                var entryInA = center - into * 1.5f;
+
+                CreateDoor(RoomsById[door.RoomA], door.RoomA, door.RoomB, center, size, entryInB);
+                CreateDoor(RoomsById[door.RoomB], door.RoomB, door.RoomA, center, size, entryInA);
             }
         }
 
-        static (Vector2 center, Vector2 size) DoorTriggerShape(DoorLink door)
+        static (Vector2 center, Vector2 size) DoorShape(DoorLink door)
         {
             var originX = door.ChunkA.X * ShapeDefinition.ChunkTiles;
             var originY = door.ChunkA.Y * ShapeDefinition.ChunkTiles;
@@ -214,17 +215,34 @@ namespace Generation.Runtime
             }
         }
 
-        void CreateDoorTrigger(RoomController owner, int roomAId, int roomBId, Vector2 center, Vector2 size, RoomTransitionController transitionController)
+        static Vector2 DirVector(Dir dir)
         {
-            var go = NewChild(owner.DoorTriggers, $"DoorTrigger_{roomAId}_{roomBId}");
+            var step = dir.Step();
+            return new Vector2(step.X, step.Y);
+        }
+
+        void CreateDoor(RoomController owner, int thisRoomId, int otherRoomId, Vector2 center, Vector2 size, Vector2 entryInOtherRoom)
+        {
+            var go = NewChild(owner.Doors, $"Door_{thisRoomId}_{otherRoomId}");
             go.transform.position = center;
+
             var collider = go.AddComponent<BoxCollider2D>();
-            collider.isTrigger = true;
+            collider.isTrigger = false; // solid: always blocks walking, used via DoorInteractor (E) instead
             collider.size = size;
-            var trigger = go.AddComponent<DoorTrigger>();
-            trigger.RoomAId = roomAId;
-            trigger.RoomBId = roomBId;
-            trigger.Controller = transitionController;
+
+            if (doorFrameSprite != null)
+            {
+                var renderer = go.AddComponent<SpriteRenderer>();
+                renderer.sprite = doorFrameSprite;
+                renderer.size = size;
+                renderer.drawMode = SpriteDrawMode.Tiled;
+                renderer.sortingOrder = ActorSortingOrder - 1;
+            }
+
+            var door = go.AddComponent<Door>();
+            door.ThisRoomId = thisRoomId;
+            door.OtherRoomId = otherRoomId;
+            door.EntryPositionInOtherRoom = new Vector3(entryInOtherRoom.x, entryInOtherRoom.y, 0f);
         }
 
         static GameObject NewChild(Transform parent, string name)
@@ -318,28 +336,6 @@ namespace Generation.Runtime
                 case Dir.S: return (index, 0);
                 case Dir.E: return (last, index);
                 default: return (0, index); // W
-            }
-        }
-
-        void PlaceDoorFrames(RoomController controller, RoomNode room, HashSet<(Cell chunk, Dir side)> openSides)
-        {
-            if (doorFrameSprite == null) return;
-
-            foreach (var (chunk, side) in openSides)
-            {
-                foreach (var index in new[] { 6, 9 }) // flank the 2-tile opening (local 7,8) on each side
-                {
-                    var (lx, ly) = BorderLocalTile(side, index);
-                    var worldX = chunk.X * ShapeDefinition.ChunkTiles + lx + 0.5f;
-                    var worldY = chunk.Y * ShapeDefinition.ChunkTiles + ly + 0.5f;
-
-                    var go = new GameObject("DoorFrame");
-                    go.transform.SetParent(controller.Props, false);
-                    go.transform.position = new Vector3(worldX, worldY, 0f);
-                    var renderer = go.AddComponent<SpriteRenderer>();
-                    renderer.sprite = doorFrameSprite;
-                    renderer.sortingOrder = 2; // with the walls, not with actors - it's part of the frame, not something to walk behind/in front of
-                }
             }
         }
 

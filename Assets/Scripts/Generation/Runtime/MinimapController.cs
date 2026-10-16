@@ -54,7 +54,6 @@ namespace Generation.Runtime
 
         readonly Dictionary<int, List<Image>> roomChunkImages = new Dictionary<int, List<Image>>();
         readonly Dictionary<int, Image[]> roomIconPool = new Dictionary<int, Image[]>();
-        readonly Dictionary<int, Vector2> roomCenters = new Dictionary<int, Vector2>();
         RectTransform playerDot;
         DungeonLayout layout;
         bool revealAll;
@@ -85,7 +84,7 @@ namespace Generation.Runtime
                 revealAll = !revealAll;
                 RefreshStatesAndIcons();
             }
-            UpdatePlayerDot();
+            RecenterOnPlayer();
         }
 
         void OnDungeonGenerated(DungeonLayout newLayout)
@@ -94,11 +93,7 @@ namespace Generation.Runtime
             Build();
         }
 
-        void OnRoomChanged(int roomId, RoomType type, bool isFirstVisit)
-        {
-            RecenterOnCurrentRoom();
-            RefreshStatesAndIcons();
-        }
+        void OnRoomChanged(int roomId, RoomType type, bool isFirstVisit) => RefreshStatesAndIcons();
 
         void OnRoomContentChanged(int roomId) => RefreshStatesAndIcons();
 
@@ -107,7 +102,6 @@ namespace Generation.Runtime
             foreach (Transform child in content) Destroy(child.gameObject);
             roomChunkImages.Clear();
             roomIconPool.Clear();
-            roomCenters.Clear();
 
             foreach (var room in layout.Rooms)
             {
@@ -126,7 +120,6 @@ namespace Generation.Runtime
                 var centerLocal = new Vector2(
                     (float)room.Chunks.Average(c => c.X - minX),
                     (float)room.Chunks.Average(c => c.Y - minY)) * chunkSize + RoomLocalOrigin(minX, minY) + Vector2.one * chunkSize / 2f;
-                roomCenters[room.Id] = centerLocal;
 
                 var iconRowGO = new GameObject($"Icons_{room.Id}", typeof(RectTransform));
                 iconRowGO.transform.SetParent(content, false);
@@ -150,7 +143,7 @@ namespace Generation.Runtime
             dotImage.color = Color.cyan;
             playerDot = dotImage.rectTransform;
 
-            RecenterOnCurrentRoom();
+            RecenterOnPlayer();
             RefreshStatesAndIcons();
         }
 
@@ -198,10 +191,23 @@ namespace Generation.Runtime
         Vector2 RoomLocalOrigin(int minChunkX, int minChunkY) =>
             new Vector2(minChunkX, minChunkY) * (chunkSize + chunkGap);
 
-        void RecenterOnCurrentRoom()
+        /// <summary>
+        /// The player's marker is always exactly at the panel's center; the map scrolls under it instead of
+        /// snapping to a room's center. Doors are now instant teleports (DoorInteractor), not continuous
+        /// walking, so there's no longer a "straddling two rooms" case to worry about here.
+        /// </summary>
+        void RecenterOnPlayer()
         {
-            if (transitionController == null || !roomCenters.TryGetValue(transitionController.CurrentRoomId, out var center)) return;
-            content.anchoredPosition = -center;
+            if (playerDot == null || player == null || transitionController == null) return;
+            if (!builder.RoomsById.TryGetValue(transitionController.CurrentRoomId, out var currentRoom)) return;
+
+            var minX = currentRoom.Room.Chunks.Min(c => c.X);
+            var minY = currentRoom.Room.Chunks.Min(c => c.Y);
+            var chunkPos = new Vector2(player.position.x, player.position.y) / ShapeDefinition.ChunkTiles;
+            var playerLocal = RoomLocalOrigin(minX, minY) + (chunkPos - new Vector2(minX, minY)) * chunkSize;
+
+            playerDot.anchoredPosition = playerLocal;
+            content.anchoredPosition = -playerLocal;
         }
 
         void RefreshStatesAndIcons()
@@ -249,9 +255,6 @@ namespace Generation.Runtime
             }
         }
 
-        /// <summary>HasBeenVisited (not State != Unvisited): a room can be pre-warmed - rendered active a tile
-        /// early so there's no pop - well before the player has actually set foot in it. Using Prewarm's state
-        /// here was exactly what made the minimap and fog of war reveal a room before the player had entered it.</summary>
         bool IsVisited(int roomId) =>
             builder != null && builder.RoomsById.TryGetValue(roomId, out var rc) && rc.HasBeenVisited;
 
@@ -288,17 +291,6 @@ namespace Generation.Runtime
                 case RoomMemberKind.Npc: return npcIconColor;
                 default: return bossIconColor;
             }
-        }
-
-        void UpdatePlayerDot()
-        {
-            if (playerDot == null || player == null || transitionController == null) return;
-            if (!builder.RoomsById.TryGetValue(transitionController.CurrentRoomId, out var currentRoom)) return;
-
-            var minX = currentRoom.Room.Chunks.Min(c => c.X);
-            var minY = currentRoom.Room.Chunks.Min(c => c.Y);
-            var chunkPos = new Vector2(player.position.x, player.position.y) / ShapeDefinition.ChunkTiles;
-            playerDot.anchoredPosition = RoomLocalOrigin(minX, minY) + (chunkPos - new Vector2(minX, minY)) * chunkSize;
         }
     }
 }
