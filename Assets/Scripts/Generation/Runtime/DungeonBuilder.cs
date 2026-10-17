@@ -83,6 +83,17 @@ namespace Generation.Runtime
             var floorDecor = CreateTilemap(gridGO.transform, "FloorDecor", sortingOrder: 1, withWallCollider: false);
             var walls = CreateTilemap(gridGO.transform, "Walls", sortingOrder: 2, withWallCollider: true);
 
+            //Added fix 
+            int wallLayer = LayerMask.NameToLayer("Walls");
+            if (wallLayer >= 0)
+            {
+                walls.gameObject.layer = wallLayer;
+            }
+            else 
+            {
+                Debug.LogError("Wall layer does not exist");
+            }
+
             var propsGO = NewChild(roomGO.transform, "Props");
             var spawnedGO = NewChild(roomGO.transform, "Spawned");
             var doorsGO = NewChild(roomGO.transform, "Doors");
@@ -225,6 +236,17 @@ namespace Generation.Runtime
         {
             var go = NewChild(owner.Doors, $"Door_{thisRoomId}_{otherRoomId}");
             go.transform.position = center;
+
+            //Added fix 
+            int wallLayer = LayerMask.NameToLayer("Walls");
+            if (wallLayer >= 0)
+            {
+                go.gameObject.layer = wallLayer;
+            }
+            else
+            {
+                Debug.LogError("Wall layer does not exist");
+            }
 
             var collider = go.AddComponent<BoxCollider2D>();
             collider.isTrigger = false; // solid: always blocks walking, used via DoorInteractor (E) instead
