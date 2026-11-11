@@ -65,6 +65,81 @@ namespace Generation.Editor
             EditorUtility.DisplayDialog("Generation bootstrap", "Done. Open Assets/Scenes/GenerationTest.unity.", "OK");
         }
 
+        [MenuItem("Generation/Integrate Into Open Scene")]
+        public static void IntegrateIntoOpenScene()
+        {
+            var scene = SceneManager.GetActiveScene();
+            var player = GameObject.FindGameObjectWithTag("Player");
+            var mainCamera = Camera.main;
+            var canvas = Object.FindFirstObjectByType<Canvas>();
+            var runnerExists = Object.FindFirstObjectByType<DungeonRunner>() != null;
+            var config = AssetDatabase.LoadAssetAtPath<GenerationConfig>(ConfigRoot + "/GenerationConfig.asset");
+
+            string problem = null;
+            if (scene.path == ScenePath || runnerExists) problem = "this scene already has the dungeon systems (or is GenerationTest).";
+            else if (player == null) problem = "no GameObject tagged Player in the open scene.";
+            else if (mainCamera == null) problem = "no camera tagged MainCamera in the open scene.";
+            else if (config == null || !File.Exists(ScenePath)) problem = "run 'Bootstrap Placeholder Assets And Test Scene' first (config assets / GenerationTest missing).";
+            if (problem != null)
+            {
+                EditorUtility.DisplayDialog("Integrate generation", "Can't integrate: " + problem, "OK");
+                return;
+            }
+
+            // Reuse the tiles/sprites/libraries already wired on GenerationTest's builder rather than re-creating them.
+            DungeonBuilder template;
+            var source = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Additive);
+            var dungeonGO = new GameObject("Dungeon");
+            try
+            {
+                template = source.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<DungeonBuilder>()).FirstOrDefault();
+                if (template == null)
+                {
+                    Object.DestroyImmediate(dungeonGO);
+                    EditorUtility.DisplayDialog("Integrate generation", "GenerationTest has no DungeonBuilder to copy settings from.", "OK");
+                    return;
+                }
+                var builder = dungeonGO.AddComponent<DungeonBuilder>();
+                EditorUtility.CopySerialized(template, builder);
+            }
+            finally
+            {
+                EditorSceneManager.CloseScene(source, true);
+            }
+
+            var b = dungeonGO.GetComponent<DungeonBuilder>();
+            var roomCamera = mainCamera.GetComponent<RoomCamera>() ?? mainCamera.gameObject.AddComponent<RoomCamera>();
+
+            var transitionController = dungeonGO.AddComponent<RoomTransitionController>();
+            transitionController.builder = b;
+            transitionController.player = player.transform;
+            transitionController.roomCamera = roomCamera;
+
+            var portalSpawner = dungeonGO.AddComponent<PortalSpawner>();
+            portalSpawner.builder = b;
+            portalSpawner.specialPrefabs = b.specialPrefabs;
+
+            var runnerGO = new GameObject("DungeonRunner");
+            var runner = runnerGO.AddComponent<DungeonRunner>();
+            runner.builder = b;
+            runner.config = config;
+            runner.player = player.transform;
+            runner.roomCamera = roomCamera;
+            runner.transitionController = transitionController;
+
+            var canvasTransform = BuildCanvasAndMinimap(scene, b, transitionController, player, canvas);
+            var bossPrompt = BuildBossPrompt(canvasTransform);
+
+            var doorInteractor = dungeonGO.AddComponent<DoorInteractor>();
+            doorInteractor.player = player.transform;
+            doorInteractor.builder = b;
+            doorInteractor.transitionController = transitionController;
+            doorInteractor.bossPrompt = bossPrompt;
+
+            EditorSceneManager.MarkSceneDirty(scene);
+            Debug.Log("[Generation] integrated into " + scene.name + " - review and save the scene.");
+        }
+
         static T CreateOrLoad<T>(string path) where T : ScriptableObject
         {
             var existing = AssetDatabase.LoadAssetAtPath<T>(path);
@@ -107,10 +182,8 @@ namespace Generation.Editor
         static EnemySpawnTable BuildEnemyTable(PlaceholderSpecials.Result specials)
         {
             var table = CreateOrLoad<EnemySpawnTable>(ConfigRoot + "/EnemySpawnTable.asset");
-            table.entries = new System.Collections.Generic.List<EnemySpawnEntry>
-            {
-                new EnemySpawnEntry { id = "slime", prefab = specials.Enemy, cost = 1f, weight = 1f, minDungeonIndex = 1 },
-            };
+            if (table.entries.Count == 0) // keep hand-assigned real mobs when re-running
+                table.entries.Add(new EnemySpawnEntry { id = "slime", prefab = specials.Enemy, cost = 1f, weight = 1f, minDungeonIndex = 1 });
             EditorUtility.SetDirty(table);
             return table;
         }
@@ -223,22 +296,32 @@ namespace Generation.Editor
             }
         }
 
-        static Transform BuildCanvasAndMinimap(Scene scene, DungeonBuilder builder, RoomTransitionController transitionController, GameObject player)
+        // existingCanvas != null: add the minimap to a scene's own Canvas/EventSystem instead of creating them.
+        static Transform BuildCanvasAndMinimap(Scene scene, DungeonBuilder builder, RoomTransitionController transitionController, GameObject player, Canvas existingCanvas = null)
         {
-            var canvasGO = new GameObject("Canvas", typeof(RectTransform));
-            SceneManager.MoveGameObjectToScene(canvasGO, scene);
-            var canvas = canvasGO.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvasGO.AddComponent<CanvasScaler>();
-            canvasGO.AddComponent<GraphicRaycaster>();
+            Transform canvasTransform;
+            if (existingCanvas != null)
+            {
+                canvasTransform = existingCanvas.transform;
+            }
+            else
+            {
+                var canvasGO = new GameObject("Canvas", typeof(RectTransform));
+                SceneManager.MoveGameObjectToScene(canvasGO, scene);
+                var canvas = canvasGO.AddComponent<Canvas>();
+                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+                canvasGO.AddComponent<CanvasScaler>();
+                canvasGO.AddComponent<GraphicRaycaster>();
+                canvasTransform = canvasGO.transform;
 
-            var eventSystemGO = new GameObject("EventSystem");
-            SceneManager.MoveGameObjectToScene(eventSystemGO, scene);
-            eventSystemGO.AddComponent<EventSystem>();
-            eventSystemGO.AddComponent<InputSystemUIInputModule>();
+                var eventSystemGO = new GameObject("EventSystem");
+                SceneManager.MoveGameObjectToScene(eventSystemGO, scene);
+                eventSystemGO.AddComponent<EventSystem>();
+                eventSystemGO.AddComponent<InputSystemUIInputModule>();
+            }
 
             var panelGO = new GameObject("MinimapPanel", typeof(RectTransform));
-            panelGO.transform.SetParent(canvasGO.transform, false);
+            panelGO.transform.SetParent(canvasTransform, false);
             var panelRt = (RectTransform)panelGO.transform;
             panelRt.anchorMin = panelRt.anchorMax = new Vector2(1, 1);
             panelRt.pivot = new Vector2(1, 1);
@@ -261,7 +344,7 @@ namespace Generation.Editor
             minimap.player = player != null ? player.transform : null;
             minimap.content = contentRt;
 
-            return canvasGO.transform;
+            return canvasTransform;
         }
 
         static BossEntryPrompt BuildBossPrompt(Transform canvasTransform)

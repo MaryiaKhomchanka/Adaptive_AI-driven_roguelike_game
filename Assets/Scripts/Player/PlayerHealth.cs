@@ -1,3 +1,4 @@
+using Generation.Runtime;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -20,7 +21,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 
     public void TakeDamage(int damage)
     {
-        if (isDead)
+        if (isDead || EntryGrace.IsActive)
         {
             return;
         }

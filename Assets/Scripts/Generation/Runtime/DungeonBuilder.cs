@@ -382,6 +382,9 @@ namespace Generation.Runtime
                 instance.name = $"{propClass}_{p.X}_{p.Y}";
                 foreach (var sr in instance.GetComponentsInChildren<SpriteRenderer>())
                     sr.sortingOrder = ActorSortingOrder;
+                // Default collides with nothing in the project's Physics2D matrix; Walls is what blocks player, enemies and projectiles.
+                foreach (var col in instance.GetComponentsInChildren<Collider2D>())
+                    col.gameObject.layer = LayerMask.NameToLayer("Walls");
             }
         }
 

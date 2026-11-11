@@ -38,6 +38,9 @@ namespace Generation.Runtime
         void PlacePlayerAtStart(DungeonLayout layout)
         {
             if (player == null) return;
+            // the scene's player may keep sorting order 0 (same as the floor), which hides it under tiles by Y-sort
+            foreach (var sr in player.GetComponentsInChildren<SpriteRenderer>())
+                sr.sortingOrder = DungeonBuilder.ActorSortingOrder;
             if (!builder.RoomsById.TryGetValue(layout.StartRoomId, out var startRoom)) return;
 
             var bounds = startRoom.TileBounds;

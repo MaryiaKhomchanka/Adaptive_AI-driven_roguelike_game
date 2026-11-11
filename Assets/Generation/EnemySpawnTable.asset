@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Generation.Runtime::Generation.Runtime.EnemySpawnTable
   entries:
   - id: slime
-    prefab: {fileID: 7711580903882533921, guid: feeb4531a700d494e88eb500a8919e0f, type: 3}
+    prefab: {fileID: 8438145898269571042, guid: f274a81c17917436a8d9b30f99d661b1, type: 3}
     cost: 1
     weight: 1
     minDungeonIndex: 1
