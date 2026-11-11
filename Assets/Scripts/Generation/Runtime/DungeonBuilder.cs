@@ -200,13 +200,14 @@ namespace Generation.Runtime
         {
             foreach (var door in layout.Doors)
             {
-                var (center, size) = DoorShape(door);
+                var (edge, size) = DoorShape(door);
                 var into = DirVector(door.SideA); // points from RoomA into RoomB
-                var entryInB = center + into * 1.5f;
-                var entryInA = center - into * 1.5f;
+                var entryInB = edge + into * 1.5f;
+                var entryInA = edge - into * 1.5f;
 
-                CreateDoor(RoomsById[door.RoomA], door.RoomA, door.RoomB, center, size, entryInB);
-                CreateDoor(RoomsById[door.RoomB], door.RoomB, door.RoomA, center, size, entryInA);
+                // each room's copy sits in its own wall row: half a tile either side of the chunk edge
+                CreateDoor(RoomsById[door.RoomA], door.RoomA, door.RoomB, edge - into * 0.5f, size, entryInB);
+                CreateDoor(RoomsById[door.RoomB], door.RoomB, door.RoomA, edge + into * 0.5f, size, entryInA);
             }
         }
 
@@ -217,12 +218,13 @@ namespace Generation.Runtime
             const float along = 8f; // true center of the 2-tile opening (tile 7 spans [7,8), tile 8 spans [8,9))
             const float chunkEdge = ShapeDefinition.ChunkTiles;
 
+            // size is 2 tiles along the wall, 1 tile thick (one room's wall row)
             switch (door.SideA)
             {
-                case Dir.N: return (new Vector2(originX + along, originY + chunkEdge), new Vector2(2, 2));
-                case Dir.S: return (new Vector2(originX + along, originY), new Vector2(2, 2));
-                case Dir.E: return (new Vector2(originX + chunkEdge, originY + along), new Vector2(2, 2));
-                default: return (new Vector2(originX, originY + along), new Vector2(2, 2)); // W
+                case Dir.N: return (new Vector2(originX + along, originY + chunkEdge), new Vector2(2, 1));
+                case Dir.S: return (new Vector2(originX + along, originY), new Vector2(2, 1));
+                case Dir.E: return (new Vector2(originX + chunkEdge, originY + along), new Vector2(1, 2));
+                default: return (new Vector2(originX, originY + along), new Vector2(1, 2)); // W
             }
         }
 
@@ -256,8 +258,8 @@ namespace Generation.Runtime
             {
                 var renderer = go.AddComponent<SpriteRenderer>();
                 renderer.sprite = doorFrameSprite;
+                renderer.drawMode = SpriteDrawMode.Tiled; // before size: switching mode resets size to the sprite's
                 renderer.size = size;
-                renderer.drawMode = SpriteDrawMode.Tiled;
                 renderer.sortingOrder = ActorSortingOrder - 1;
             }
 

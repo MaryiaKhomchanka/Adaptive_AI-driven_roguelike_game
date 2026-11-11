@@ -203,11 +203,6 @@ namespace Generation.Editor
                 SceneManager.MoveGameObjectToScene(debugGO, scene);
                 debugGO.AddComponent<DebugEventLogger>();
 
-                var debugKiller = debugGO.AddComponent<DebugEnemyKiller>();
-                debugKiller.targetCamera = cam;
-                debugKiller.builder = builder;
-                debugKiller.transitionController = transitionController;
-
                 var debugInteract = debugGO.AddComponent<DebugInteract>();
                 debugInteract.player = player != null ? player.transform : null;
 

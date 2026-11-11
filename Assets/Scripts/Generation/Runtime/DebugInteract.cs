@@ -12,11 +12,19 @@ namespace Generation.Runtime
     {
         public Transform player;
         public float radius = 1f;
+        public string interactActionName = "Interact";
+
+        InputAction interact;
+
+        void Start()
+        {
+            if (player != null && player.TryGetComponent<PlayerInput>(out var input))
+                interact = input.actions[interactActionName];
+        }
 
         void Update()
         {
-            if (Keyboard.current == null || !Keyboard.current.eKey.wasPressedThisFrame) return;
-            if (player == null) return;
+            if (interact == null || !interact.WasPressedThisFrame()) return;
 
             foreach (var hit in Physics2D.OverlapCircleAll(player.position, radius))
             {

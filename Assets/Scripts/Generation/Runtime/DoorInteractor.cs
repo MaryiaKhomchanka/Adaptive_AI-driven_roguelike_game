@@ -15,21 +15,32 @@ namespace Generation.Runtime
         public RoomTransitionController transitionController;
         public BossEntryPrompt bossPrompt;
         public float interactRadius = 1.2f;
+        public string interactActionName = "Interact";
+        public string cancelActionName = "Cancel";
 
+        InputAction interact;
+        InputAction cancel;
         Door pendingBossDoor;
+
+        void Start()
+        {
+            if (player == null || !player.TryGetComponent<PlayerInput>(out var input)) return;
+            interact = input.actions[interactActionName];
+            cancel = input.actions[cancelActionName];
+        }
 
         void Update()
         {
-            if (Keyboard.current == null || player == null) return;
+            if (interact == null) return;
 
             if (pendingBossDoor != null)
             {
-                if (Keyboard.current.eKey.wasPressedThisFrame) ConfirmBossDoor();
-                else if (Keyboard.current.escapeKey.wasPressedThisFrame || Keyboard.current.qKey.wasPressedThisFrame) CancelBossDoor();
+                if (interact.WasPressedThisFrame()) ConfirmBossDoor();
+                else if (cancel.WasPressedThisFrame()) CancelBossDoor();
                 return;
             }
 
-            if (!Keyboard.current.eKey.wasPressedThisFrame) return;
+            if (!interact.WasPressedThisFrame()) return;
 
             foreach (var hit in Physics2D.OverlapCircleAll(player.position, interactRadius))
             {

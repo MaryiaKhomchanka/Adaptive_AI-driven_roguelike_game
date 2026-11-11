@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem; 
 
+[RequireComponent(typeof(PlayerInput))]
 public class PlayerAttack : MonoBehaviour
 {
     [SerializeField] private Projectile projectileObject;
@@ -11,8 +12,11 @@ public class PlayerAttack : MonoBehaviour
     [SerializeField] private float cooldown = 0.25f;
     [SerializeField] private float spawnOffset = 0.5f;
 
+    [SerializeField] private string attackActionName = "Attack";
+
     private PlayerMovements movement;
     private Animator animator;
+    private InputAction attackAction;
     private float nextFire;
 
 
@@ -20,15 +24,12 @@ public class PlayerAttack : MonoBehaviour
     {
         movement = GetComponent<PlayerMovements>();
         animator = GetComponent<Animator>();
+        attackAction = GetComponent<PlayerInput>().actions[attackActionName];
     }
-   
+
     private void Update()
     {
-        if (Keyboard.current == null)
-        {
-            return;
-        }
-        if (Keyboard.current.fKey.isPressed && Time.time >= nextFire)
+        if (attackAction.IsPressed() && Time.time >= nextFire)
         {
             Shoot();
         }
