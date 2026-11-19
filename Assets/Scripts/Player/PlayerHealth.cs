@@ -52,7 +52,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 
     private void Update()
     {
-        if (Keyboard.current.hKey.wasPressedThisFrame)
+        if (Keyboard.current != null && Keyboard.current.hKey.wasPressedThisFrame)
         {
             TakeDamage(1);
         }

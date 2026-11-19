@@ -11,6 +11,9 @@ public class EnemyHealth : MonoBehaviour, IDamageable
     private Animator animator;
     private EnemyMovement movement;
 
+    public bool IsDead => dead;
+    public float HealthFraction => (float)currentHealth / maxHealth;
+
     private void Awake()
     {
         currentHealth = maxHealth;

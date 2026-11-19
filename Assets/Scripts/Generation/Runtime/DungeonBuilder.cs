@@ -34,6 +34,9 @@ namespace Generation.Runtime
         [Tooltip("The door's visual. The door itself is always solid (DoorInteractor/E is the only way through, never by walking).")]
         public Sprite doorFrameSprite;
 
+        [Header("Lighting")]
+        public bool wallShadows = true;
+
         public DungeonLayout CurrentLayout { get; private set; }
         public Dictionary<int, RoomController> RoomsById { get; } = new Dictionary<int, RoomController>();
 
@@ -116,6 +119,7 @@ namespace Generation.Runtime
 
             PaintFloorAndDecor(floor, floorDecor, grid2D, w, h, anchorTileX, anchorTileY, Rng.ForStep(seed, $"tiles-{room.Id}"));
             PaintWalls(walls, room, openSides);
+            if (wallShadows) WallShadows.Build(walls);
             PlaceProps(controller, grid2D, w, h, '#', PropClass.Obstacle, anchorTileX, anchorTileY, Rng.ForStep(seed, $"props-obstacle-{room.Id}"));
             PlaceProps(controller, grid2D, w, h, 'P', PropClass.SolidDecor, anchorTileX, anchorTileY, Rng.ForStep(seed, $"props-decor-{room.Id}"));
 
@@ -184,6 +188,7 @@ namespace Generation.Runtime
             RoomActivity.Register(roomId, kind);
             foreach (var sr in instance.GetComponentsInChildren<SpriteRenderer>())
                 sr.sortingOrder = ActorSortingOrder;
+            PixelLit.Actor(instance);
         }
 
         static List<(int x, int y)> FindSlotPositions(char[,] grid2D, int w, int h, char symbol)
@@ -261,6 +266,7 @@ namespace Generation.Runtime
                 renderer.drawMode = SpriteDrawMode.Tiled; // before size: switching mode resets size to the sprite's
                 renderer.size = size;
                 renderer.sortingOrder = ActorSortingOrder - 1;
+                PixelLit.World(renderer);
             }
 
             var door = go.AddComponent<Door>();
@@ -282,6 +288,7 @@ namespace Generation.Runtime
             var tilemap = go.AddComponent<Tilemap>();
             var renderer = go.AddComponent<TilemapRenderer>();
             renderer.sortingOrder = sortingOrder;
+            PixelLit.World(renderer);
 
             if (withWallCollider)
             {
@@ -382,6 +389,9 @@ namespace Generation.Runtime
                 instance.name = $"{propClass}_{p.X}_{p.Y}";
                 foreach (var sr in instance.GetComponentsInChildren<SpriteRenderer>())
                     sr.sortingOrder = ActorSortingOrder;
+                PixelLit.World(instance);
+                if (wallShadows)
+                    WallShadows.AddBox(controller.Props, new RectInt(anchorTileX + p.X, anchorTileY + p.Y, p.Width, p.Height));
                 // Default collides with nothing in the project's Physics2D matrix; Walls is what blocks player, enemies and projectiles.
                 foreach (var col in instance.GetComponentsInChildren<Collider2D>())
                     col.gameObject.layer = LayerMask.NameToLayer("Walls");

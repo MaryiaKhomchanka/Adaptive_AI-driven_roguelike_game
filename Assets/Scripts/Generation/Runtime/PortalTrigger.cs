@@ -7,21 +7,14 @@ namespace Generation.Runtime
     public sealed class PortalTrigger : MonoBehaviour
     {
         public DungeonBuilder builder;
+        public float radius = 0.4f;
         bool completed;
 
-        void Awake()
+        // An overlap query rather than OnTriggerEnter2D: the project's Physics2D matrix has no Default x Player entry,
+        // so a trigger on the portal's (Default) layer never fires.
+        void Update()
         {
-            if (GetComponent<Collider2D>() == null)
-            {
-                var collider = gameObject.AddComponent<CircleCollider2D>();
-                collider.isTrigger = true;
-                collider.radius = 0.4f;
-            }
-        }
-
-        void OnTriggerEnter2D(Collider2D other)
-        {
-            if (completed || !other.CompareTag("Player")) return;
+            if (completed || Physics2D.OverlapCircle(transform.position, radius, LayerMask.GetMask("Player")) == null) return;
             var layout = builder != null ? builder.CurrentLayout : null;
             if (layout == null) return;
 

@@ -202,7 +202,7 @@ namespace Generation.Editor
         static SpecialPrefabs BuildSpecialPrefabs(PlaceholderSpecials.Result specials)
         {
             var asset = CreateOrLoad<SpecialPrefabs>(ConfigRoot + "/SpecialPrefabs.asset");
-            asset.boss = specials.Boss;
+            if (asset.boss == null) asset.boss = specials.Boss; // keep a hand-assigned real boss when re-running
             asset.treasureChest = specials.Treasure;
             asset.shopVendor = specials.Shop;
             asset.npc = specials.Npc;

@@ -1,5 +1,7 @@
+using System.Collections;
 using Generation.Core;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace Generation.Runtime
 {
@@ -17,6 +19,28 @@ namespace Generation.Runtime
         public int dungeonIndex = 1;
         public int seed;
 
+        void OnEnable() => DungeonEvents.DungeonCompleted += OnDungeonCompleted;
+        void OnDisable() => DungeonEvents.DungeonCompleted -= OnDungeonCompleted;
+
+        // Deferred a frame: this fires from the portal's physics callback, and Regenerate destroys/creates colliders.
+        void OnDungeonCompleted(DungeonSummary summary) => StartCoroutine(Advance());
+
+        IEnumerator Advance()
+        {
+            yield return null;
+            if (!string.IsNullOrEmpty(config.hubSceneName) && Application.CanStreamedLevelBeLoaded(config.hubSceneName))
+            {
+                SceneManager.LoadScene(config.hubSceneName);
+                yield break;
+            }
+
+            if (!string.IsNullOrEmpty(config.hubSceneName))
+                Debug.LogWarning($"[Dungeon] hub scene '{config.hubSceneName}' is not in Build Settings; generating the next dungeon instead.");
+            dungeonIndex++;
+            seed = System.Environment.TickCount;
+            Regenerate();
+        }
+
         void Start()
         {
             if (seed == 0) seed = System.Environment.TickCount;
@@ -26,6 +50,7 @@ namespace Generation.Runtime
         public void Regenerate()
         {
             EntryGrace.Configure(config.entryGraceSeconds);
+            DungeonLighting.Setup(config, player, builder.wallShadows);
 
             var provider = new DefaultRequestProvider(config);
             var request = provider.Create(dungeonIndex, seed);

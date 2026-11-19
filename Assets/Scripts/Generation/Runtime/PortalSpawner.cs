@@ -22,6 +22,7 @@ namespace Generation.Runtime
             var position = controller.SpecialSlotWorldPosition ?? controller.transform.position;
             var portal = Instantiate(specialPrefabs.portal, position, Quaternion.identity, controller.Spawned);
             portal.name = "Portal";
+            PixelLit.Actor(portal);
 
             var trigger = portal.GetComponent<PortalTrigger>() ?? portal.AddComponent<PortalTrigger>();
             trigger.builder = builder;
