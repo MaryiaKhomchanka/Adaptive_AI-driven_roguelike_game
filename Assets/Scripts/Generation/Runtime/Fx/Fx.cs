@@ -11,6 +11,23 @@ namespace Generation.Runtime
     {
         const int BitsOrder = DungeonBuilder.ActorSortingOrder + 2;
         static Sprite pixel;
+        static TMP_FontAsset font;
+
+        /// <summary>Menu/UI text is drawn this much smaller than a regular font size: Press Start 2P is a wide monospace face.</summary>
+        public const float UiFontScale = 0.62f;
+
+        /// <summary>The game's pixel font (Resources/Fonts/PressStart2P-Regular, SIL OFL), as a dynamic TMP asset.
+        /// Null if the font file is missing, in which case TMP's default font is used.</summary>
+        public static TMP_FontAsset Font
+        {
+            get
+            {
+                if (font != null) return font;
+                var source = Resources.Load<Font>("Fonts/PressStart2P-Regular");
+                if (source != null) font = TMP_FontAsset.CreateFontAsset(source);
+                return font;
+            }
+        }
 
         /// <summary>A 4x4 white sprite at 32 PPU = one 1/8-unit square. Also handy for placeholder art.</summary>
         public static Sprite Pixel
@@ -64,7 +81,8 @@ namespace Generation.Runtime
 
             var label = go.AddComponent<TextMeshPro>();
             label.text = text;
-            label.fontSize = 3f;
+            if (Font != null) label.font = Font;
+            label.fontSize = 2.4f;
             label.alignment = TextAlignmentOptions.Center;
             label.color = color;
             label.sortingOrder = BitsOrder + 1;

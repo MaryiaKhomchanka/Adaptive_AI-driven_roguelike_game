@@ -18,9 +18,9 @@ public sealed class HubBuilder : MonoBehaviour
     {
         BuildTiles();
 
-        Station("Врата в данж", "", StationAction.StartRun, new Color(1f, 0.8f, 0.2f), new Vector2(size.x / 2f, size.y - 3f));
-        Station("Магазин", "Магазин появится позже", StationAction.Message, new Color(0.3f, 0.5f, 1f), new Vector2(5f, size.y - 6f));
-        Station("Улучшения", "", StationAction.BuyHealth, new Color(0.3f, 0.85f, 0.45f), new Vector2(size.x - 5f, size.y - 6f));
+        Station("Dungeon Gate", "", StationAction.StartRun, new Color(1f, 0.8f, 0.2f), new Vector2(size.x / 2f, size.y - 3f));
+        Station("Shop", "The shop opens later", StationAction.Message, new Color(0.3f, 0.5f, 1f), new Vector2(5f, size.y - 6f));
+        Station("Upgrades", "", StationAction.BuyHealth, new Color(0.3f, 0.85f, 0.45f), new Vector2(size.x - 5f, size.y - 6f));
 
         var roomCamera = Camera.main != null ? Camera.main.GetComponent<RoomCamera>() : null;
         if (roomCamera == null || player == null) return;
@@ -68,10 +68,11 @@ public sealed class HubBuilder : MonoBehaviour
         labelGO.transform.SetParent(transform, false);
         labelGO.transform.position = position + Vector2.up * 1.7f;
         var label = labelGO.AddComponent<TextMeshPro>();
-        label.fontSize = 3f;
+        if (Fx.Font != null) label.font = Fx.Font;
+        label.fontSize = 2.4f;
         label.alignment = TextAlignmentOptions.Center;
         label.sortingOrder = DungeonBuilder.ActorSortingOrder + 3;
-        label.rectTransform.sizeDelta = new Vector2(8f, 1f);
+        label.rectTransform.sizeDelta = new Vector2(12f, 1f);
 
         var station = go.AddComponent<HubStation>();
         station.title = title;

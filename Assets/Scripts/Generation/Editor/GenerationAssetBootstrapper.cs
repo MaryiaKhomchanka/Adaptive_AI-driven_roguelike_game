@@ -364,7 +364,7 @@ namespace Generation.Editor
             labelRt.anchorMax = Vector2.one;
             labelRt.sizeDelta = Vector2.zero;
             var label = labelGO.AddComponent<TextMeshProUGUI>();
-            label.text = "Дальше - комната босса. Войти?\nE - да, Q/Esc - нет";
+            label.text = "Boss room ahead. Enter?\nE - yes, Q/Esc - no";
             label.alignment = TextAlignmentOptions.Center;
             label.fontSize = 18;
             label.color = Color.white;

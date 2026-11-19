@@ -22,7 +22,7 @@ public static class UiKit
         content.transform.SetParent(root.transform, false);
         var contentRt = (RectTransform)content.transform;
         contentRt.anchorMin = contentRt.anchorMax = contentRt.pivot = new Vector2(0.5f, 0.5f);
-        contentRt.sizeDelta = new Vector2(560, 0);
+        contentRt.sizeDelta = new Vector2(760, 0);
 
         var layout = content.GetComponent<VerticalLayoutGroup>();
         layout.spacing = 14;
@@ -42,7 +42,8 @@ public static class UiKit
         go.transform.SetParent(parent, false);
         var label = go.AddComponent<TextMeshProUGUI>();
         label.text = text;
-        label.fontSize = size;
+        if (Generation.Runtime.Fx.Font != null) label.font = Generation.Runtime.Fx.Font;
+        label.fontSize = size * Generation.Runtime.Fx.UiFontScale;
         label.alignment = TextAlignmentOptions.Center;
         label.color = Color.white;
         label.raycastTarget = false;

@@ -10,7 +10,7 @@ using UnityEngine;
 [RequireComponent(typeof(EnemyHealth), typeof(EnemyMovement), typeof(EnemyBehaviour))]
 public class BossController : MonoBehaviour
 {
-    [SerializeField] private string bossName = "Слизневый король";
+    [SerializeField] private string bossName = "Slime King";
     [SerializeField] private GameObject minionPrefab;
     [SerializeField] private float abilityCooldown = 4f;
     [SerializeField] private float enragedCooldown = 2.5f;

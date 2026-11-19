@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 
 namespace Generation.Runtime
@@ -9,6 +10,11 @@ namespace Generation.Runtime
 
         void Awake()
         {
+            foreach (var text in GetComponentsInChildren<TMP_Text>(true))
+            {
+                if (Fx.Font != null) text.font = Fx.Font;
+                text.fontSize *= Fx.UiFontScale;
+            }
             if (panel != null) panel.SetActive(false);
         }
 

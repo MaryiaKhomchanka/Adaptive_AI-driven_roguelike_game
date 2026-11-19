@@ -31,7 +31,7 @@ public sealed class GameFlow : MonoBehaviour
     InputAction pauseAction;
 
     const string BindingsKey = "settings.bindings";
-    static readonly (string action, string title)[] Rebinds = { ("Attack", "Атака"), ("Interact", "Действие"), ("Pause", "Пауза") };
+    static readonly (string action, string title)[] Rebinds = { ("Attack", "Attack"), ("Interact", "Interact"), ("Pause", "Pause") };
     bool paused;
     bool ended;
     float toastUntil;
@@ -112,7 +112,7 @@ public sealed class GameFlow : MonoBehaviour
         SaveData.Current.deaths++;
         SaveData.Save();
         var lost = RunState.Discard();
-        deathStats.text = lost > 0 ? $"Потеряно монет: {lost}" : "";
+        deathStats.text = lost > 0 ? $"Coins lost: {lost}" : "";
         RefreshCoins();
         StartCoroutine(ShowAfterDelay(deathPage, 1.5f));
     }
@@ -127,8 +127,8 @@ public sealed class GameFlow : MonoBehaviour
     {
         var inDungeon = SceneManager.GetActiveScene().name == GameScenes.Dungeon;
         coinsLabel.text = inDungeon && RunState.Coins > 0
-            ? $"Монеты: {SaveData.Current.coins}  (+{RunState.Coins} за забег, сохранятся только при победе)"
-            : $"Монеты: {SaveData.Current.coins}";
+            ? $"Coins: {SaveData.Current.coins}  (+{RunState.Coins} unbanked)"
+            : $"Coins: {SaveData.Current.coins}";
     }
 
     public void SetBossBar(string title, float fraction)
@@ -148,8 +148,8 @@ public sealed class GameFlow : MonoBehaviour
         SaveData.Current.dungeonsCompleted++;
         var banked = RunState.Bank();
         RefreshCoins();
-        victoryStats.text = $"Время: {summary.TimeSeconds:0} с\nКомнат пройдено: {summary.RoomsVisited}/{summary.RoomsTotal}\n" +
-                            $"Комнат зачищено: {summary.RoomsCleared}\nМонет сохранено: {banked}\nВсего пройдено данжей: {SaveData.Current.dungeonsCompleted}";
+        victoryStats.text = $"Time: {summary.TimeSeconds:0} s\nRooms visited: {summary.RoomsVisited}/{summary.RoomsTotal}\n" +
+                            $"Rooms cleared: {summary.RoomsCleared}\nCoins banked: {banked}\nDungeons cleared: {SaveData.Current.dungeonsCompleted}";
         End(victoryPage);
     }
 
@@ -214,7 +214,7 @@ public sealed class GameFlow : MonoBehaviour
     void Go(string scene)
     {
         var lost = RunState.Discard(); // leaving mid-run (hub/menu from pause) forfeits the run's loot
-        if (lost > 0) pendingToast = $"Забег прерван: потеряно монет {lost}";
+        if (lost > 0) pendingToast = $"Run abandoned: {lost} coins lost";
         SaveData.Save();
         Time.timeScale = 1f;
         paused = ended = false;
@@ -273,52 +273,52 @@ public sealed class GameFlow : MonoBehaviour
         var main = mainTuple.content;
         UiKit.Label(main, Application.productName, 64, bold: true);
         UiKit.Label(main, " ", 20);
-        UiKit.Button(main, "Играть", ToHub);
-        UiKit.Button(main, "Настройки", () => OpenSettings(mainPage));
-        UiKit.Button(main, "Выход", Quit);
+        UiKit.Button(main, "Play", ToHub);
+        UiKit.Button(main, "Settings", () => OpenSettings(mainPage));
+        UiKit.Button(main, "Quit", Quit);
 
         var pauseTuple = UiKit.Page(canvasGO.transform, "Pause", dim);
         pausePage = pauseTuple.root;
         var pause = pauseTuple.content;
-        UiKit.Label(pause, "Пауза", 56, bold: true);
-        UiKit.Button(pause, "Продолжить", () => SetPaused(false));
-        UiKit.Button(pause, "Настройки", () => OpenSettings(pausePage));
-        pauseHubButton = UiKit.Button(pause, "В хаб (прервать забег)", ToHub);
-        UiKit.Button(pause, "В главное меню", ToMainMenu);
+        UiKit.Label(pause, "Paused", 56, bold: true);
+        UiKit.Button(pause, "Resume", () => SetPaused(false));
+        UiKit.Button(pause, "Settings", () => OpenSettings(pausePage));
+        pauseHubButton = UiKit.Button(pause, "To hub (abandon run)", ToHub);
+        UiKit.Button(pause, "To main menu", ToMainMenu);
 
         var deathTuple = UiKit.Page(canvasGO.transform, "Death", new Color(0.15f, 0f, 0f, 0.85f));
         deathPage = deathTuple.root;
         var death = deathTuple.content;
-        UiKit.Label(death, "Вы погибли", 64, bold: true);
+        UiKit.Label(death, "You died", 64, bold: true);
         deathStats = UiKit.Label(death, "", 28);
-        UiKit.Button(death, "Возродиться в хабе", ToHub);
-        UiKit.Button(death, "В главное меню", ToMainMenu);
+        UiKit.Button(death, "Respawn in hub", ToHub);
+        UiKit.Button(death, "To main menu", ToMainMenu);
 
         var victoryTuple = UiKit.Page(canvasGO.transform, "Victory", new Color(0f, 0.1f, 0.05f, 0.85f));
         victoryPage = victoryTuple.root;
         var victory = victoryTuple.content;
-        UiKit.Label(victory, "Данж пройден!", 64, bold: true);
+        UiKit.Label(victory, "Dungeon cleared!", 64, bold: true);
         victoryStats = UiKit.Label(victory, "", 28);
-        UiKit.Button(victory, "Вернуться в хаб", ToHub);
+        UiKit.Button(victory, "Return to hub", ToHub);
 
         var settingsTuple = UiKit.Page(canvasGO.transform, "Settings", new Color(0.05f, 0.05f, 0.09f, 0.97f));
         settingsPage = settingsTuple.root;
         var settings = settingsTuple.content;
-        UiKit.Label(settings, "Настройки", 48, bold: true);
-        VolumeRow(settings, "Общая громкость", GameSettings.Master, v => GameSettings.Master = v);
-        VolumeRow(settings, "Музыка (скоро)", GameSettings.Music, v => GameSettings.Music = v);
-        VolumeRow(settings, "Звуки (скоро)", GameSettings.Sfx, v => GameSettings.Sfx = v);
+        UiKit.Label(settings, "Settings", 48, bold: true);
+        VolumeRow(settings, "Master volume", GameSettings.Master, v => GameSettings.Master = v);
+        VolumeRow(settings, "Music (soon)", GameSettings.Music, v => GameSettings.Music = v);
+        VolumeRow(settings, "SFX (soon)", GameSettings.Sfx, v => GameSettings.Sfx = v);
         fullscreenButton = UiKit.Button(settings, "", () => { GameSettings.Fullscreen = !GameSettings.Fullscreen; RefreshToggles(); }, 44);
         shakeButton = UiKit.Button(settings, "", () => { GameSettings.ScreenShake = !GameSettings.ScreenShake; RefreshToggles(); }, 44);
-        UiKit.Label(settings, "Движение: WASD. Backspace отменяет переназначение; ЛКМ всегда атакует", 20);
+        UiKit.Label(settings, "Move: WASD | LMB always attacks | Backspace cancels", 20);
         rebindButtons = new Button[Rebinds.Length];
         for (var i = 0; i < Rebinds.Length; i++)
         {
             var index = i;
             rebindButtons[i] = UiKit.Button(settings, "", () => StartRebind(index), 44);
         }
-        UiKit.Button(settings, "Сбросить управление", ResetBindings, 44);
-        UiKit.Button(settings, "Назад", CloseSettings, 44);
+        UiKit.Button(settings, "Reset controls", ResetBindings, 44);
+        UiKit.Button(settings, "Back", CloseSettings, 44);
         RefreshToggles();
         RefreshRebinds();
 
@@ -327,7 +327,7 @@ public sealed class GameFlow : MonoBehaviour
         var coinsRt = (RectTransform)coinsLabel.transform;
         coinsRt.anchorMin = coinsRt.anchorMax = coinsRt.pivot = Vector2.zero;
         coinsRt.anchoredPosition = new Vector2(30, 24);
-        coinsRt.sizeDelta = new Vector2(500, 50);
+        coinsRt.sizeDelta = new Vector2(700, 50);
 
         bossBar = new GameObject("BossBar", typeof(RectTransform), typeof(Image));
         bossBar.transform.SetParent(canvasGO.transform, false);
@@ -376,12 +376,12 @@ public sealed class GameFlow : MonoBehaviour
         var action = bindings != null ? bindings.FindAction(Rebinds[index].action) : null;
         if (action == null)
         {
-            Toast("Переназначение доступно из паузы в игре");
+            Toast("Rebinding is available from the pause menu in-game");
             return;
         }
 
         rebinding?.Dispose();
-        UiKit.SetButtonText(rebindButtons[index], $"{Rebinds[index].title}: нажмите клавишу...");
+        UiKit.SetButtonText(rebindButtons[index], $"{Rebinds[index].title}: press a key...");
         rebindMap = action.actionMap;
         rebindMap.Disable(); // an enabled action can't be rebound
         rebinding = action.PerformInteractiveRebinding(0)
@@ -405,7 +405,7 @@ public sealed class GameFlow : MonoBehaviour
     {
         if (bindings == null)
         {
-            Toast("Сброс доступен из паузы в игре");
+            Toast("Reset is available from the pause menu in-game");
             return;
         }
         bindings.RemoveAllBindingOverrides();
@@ -425,7 +425,7 @@ public sealed class GameFlow : MonoBehaviour
 
     void RefreshToggles()
     {
-        UiKit.SetButtonText(fullscreenButton, $"Полный экран: {(GameSettings.Fullscreen ? "вкл" : "выкл")}");
-        UiKit.SetButtonText(shakeButton, $"Тряска экрана: {(GameSettings.ScreenShake ? "вкл" : "выкл")}");
+        UiKit.SetButtonText(fullscreenButton, $"Fullscreen: {(GameSettings.Fullscreen ? "on" : "off")}");
+        UiKit.SetButtonText(shakeButton, $"Screen shake: {(GameSettings.ScreenShake ? "on" : "off")}");
     }
 }

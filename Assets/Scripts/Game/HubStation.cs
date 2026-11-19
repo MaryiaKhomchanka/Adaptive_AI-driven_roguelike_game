@@ -27,7 +27,7 @@ public sealed class HubStation : MonoBehaviour
         if (player == null || interact == null) return;
 
         var near = Vector2.Distance(player.position, transform.position) <= reach;
-        var shown = action == StationAction.BuyHealth ? $"{title}: +1 сердце ({HealthCost()} мон.)" : title;
+        var shown = action == StationAction.BuyHealth ? $"{title}: +1 heart ({HealthCost()}c)" : title;
         label.text = near ? $"[E] {shown}" : shown;
         label.color = near ? Color.yellow : Color.white;
 
@@ -48,7 +48,7 @@ public sealed class HubStation : MonoBehaviour
         var cost = HealthCost();
         if (save.coins < cost)
         {
-            GameFlow.Instance.Toast($"Нужно {cost} монет, у вас {save.coins}");
+            GameFlow.Instance.Toast($"Need {cost} coins, you have {save.coins}");
             return;
         }
 
@@ -57,6 +57,6 @@ public sealed class HubStation : MonoBehaviour
         SaveData.Save();
         player.GetComponent<PlayerHealth>().GrowMaxHealth(1);
         GameFlow.Instance.RefreshCoins();
-        GameFlow.Instance.Toast("Максимум здоровья +1");
+        GameFlow.Instance.Toast("Max health +1");
     }
 }
