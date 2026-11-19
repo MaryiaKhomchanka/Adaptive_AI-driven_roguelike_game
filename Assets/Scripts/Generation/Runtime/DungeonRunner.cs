@@ -18,6 +18,9 @@ namespace Generation.Runtime
         [Tooltip("Off when something else (the game flow's victory screen) decides what happens after the portal.")]
         public bool advanceOnCompletion = true;
 
+        /// <summary>Set by the game flow before loading the dungeon scene; 0 = use the inspector value.</summary>
+        public static int StartDungeonIndex;
+
         [Header("Run state")]
         public int dungeonIndex = 1;
         public int seed;
@@ -49,6 +52,7 @@ namespace Generation.Runtime
 
         void Start()
         {
+            if (StartDungeonIndex > 0) dungeonIndex = StartDungeonIndex;
             if (seed == 0) seed = System.Environment.TickCount;
             Regenerate();
         }

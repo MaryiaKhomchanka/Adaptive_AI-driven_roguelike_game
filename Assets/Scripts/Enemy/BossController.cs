@@ -10,6 +10,7 @@ using UnityEngine;
 [RequireComponent(typeof(EnemyHealth), typeof(EnemyMovement), typeof(EnemyBehaviour))]
 public class BossController : MonoBehaviour
 {
+    [SerializeField] private string bossName = "Слизневый король";
     [SerializeField] private GameObject minionPrefab;
     [SerializeField] private float abilityCooldown = 4f;
     [SerializeField] private float enragedCooldown = 2.5f;
@@ -52,6 +53,18 @@ public class BossController : MonoBehaviour
     {
         Resume();
         StartCoroutine(AbilityLoop());
+    }
+
+    private void Update()
+    {
+        if (GameFlow.Instance == null) return;
+        if (health.IsDead) GameFlow.Instance.HideBossBar();
+        else GameFlow.Instance.SetBossBar(bossName, health.HealthFraction);
+    }
+
+    private void OnDisable()
+    {
+        if (GameFlow.Instance != null) GameFlow.Instance.HideBossBar();
     }
 
     private void OnDestroy()

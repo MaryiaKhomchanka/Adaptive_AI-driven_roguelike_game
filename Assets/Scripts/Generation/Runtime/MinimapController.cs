@@ -78,12 +78,6 @@ namespace Generation.Runtime
 
         void Update()
         {
-            // Debug.isDebugBuild covers the editor and development builds without the deprecated DEVELOPMENT_BUILD directive.
-            if (Debug.isDebugBuild && Keyboard.current != null && Keyboard.current.mKey.wasPressedThisFrame)
-            {
-                revealAll = !revealAll;
-                RefreshStatesAndIcons();
-            }
             RecenterOnPlayer();
         }
 

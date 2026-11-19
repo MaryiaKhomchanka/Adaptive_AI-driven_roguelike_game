@@ -18,9 +18,9 @@ public sealed class HubBuilder : MonoBehaviour
     {
         BuildTiles();
 
-        Station("Врата в данж", "", true, new Color(1f, 0.8f, 0.2f), new Vector2(size.x / 2f, size.y - 3f));
-        Station("Магазин", "Магазин появится позже", false, new Color(0.3f, 0.5f, 1f), new Vector2(5f, size.y - 6f));
-        Station("Улучшения", "Улучшения появятся позже", false, new Color(0.3f, 0.85f, 0.45f), new Vector2(size.x - 5f, size.y - 6f));
+        Station("Врата в данж", "", StationAction.StartRun, new Color(1f, 0.8f, 0.2f), new Vector2(size.x / 2f, size.y - 3f));
+        Station("Магазин", "Магазин появится позже", StationAction.Message, new Color(0.3f, 0.5f, 1f), new Vector2(5f, size.y - 6f));
+        Station("Улучшения", "", StationAction.BuyHealth, new Color(0.3f, 0.85f, 0.45f), new Vector2(size.x - 5f, size.y - 6f));
 
         var roomCamera = Camera.main != null ? Camera.main.GetComponent<RoomCamera>() : null;
         if (roomCamera == null || player == null) return;
@@ -49,7 +49,7 @@ public sealed class HubBuilder : MonoBehaviour
         }
     }
 
-    void Station(string title, string message, bool startsRun, Color color, Vector2 position)
+    void Station(string title, string message, StationAction action, Color color, Vector2 position)
     {
         var go = new GameObject(title);
         go.transform.SetParent(transform, false);
@@ -76,7 +76,7 @@ public sealed class HubBuilder : MonoBehaviour
         var station = go.AddComponent<HubStation>();
         station.title = title;
         station.message = message;
-        station.startsRun = startsRun;
+        station.action = action;
         station.player = player;
         station.label = label;
     }

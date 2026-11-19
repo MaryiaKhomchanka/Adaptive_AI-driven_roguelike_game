@@ -8,6 +8,7 @@ namespace Generation.Runtime
     public sealed class LootPlaceholderPickup : MonoBehaviour
     {
         public float pickupRadius = 0.3f;
+        public int coins = 1;
 
         static int playerMask = -1;
 
@@ -16,6 +17,7 @@ namespace Generation.Runtime
             if (playerMask < 0) playerMask = LayerMask.GetMask("Player");
             if (Physics2D.OverlapCircle(transform.position, pickupRadius, playerMask) == null) return;
             Fx.Burst(transform.position, new Color(1f, 0.85f, 0.25f), 10, 2.5f, 0.5f);
+            DungeonEvents.RaiseCoinsCollected(coins);
             Destroy(gameObject);
         }
     }

@@ -1,7 +1,6 @@
 using System;
 using Generation.Runtime;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 public class PlayerHealth : MonoBehaviour, IDamageable
 {
@@ -16,6 +15,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 
     private void Start()
     {
+        maxHealth += SaveData.Current.bonusHealth;
         currentHealth = maxHealth;
         animator = GetComponent<Animator>();
 
@@ -58,12 +58,11 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         Died?.Invoke();
     }
 
-    private void Update()
+    public void GrowMaxHealth(int amount)
     {
-        if (Keyboard.current != null && Keyboard.current.hKey.wasPressedThisFrame)
-        {
-            TakeDamage(1);
-        }
+        maxHealth += amount;
+        currentHealth += amount;
+        if (heartUI != null) heartUI.UpdateHearts(currentHealth, maxHealth);
     }
     
 }

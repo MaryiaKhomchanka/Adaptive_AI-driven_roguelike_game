@@ -50,11 +50,11 @@ public static class UiKit
         return label;
     }
 
-    public static Button Button(Transform parent, string text, UnityAction onClick)
+    public static Button Button(Transform parent, string text, UnityAction onClick, float height = 56)
     {
         var go = new GameObject(text, typeof(RectTransform), typeof(Image), typeof(Button), typeof(LayoutElement));
         go.transform.SetParent(parent, false);
-        go.GetComponent<LayoutElement>().preferredHeight = 56;
+        go.GetComponent<LayoutElement>().preferredHeight = height;
 
         var image = go.GetComponent<Image>();
         image.color = ButtonColor;
