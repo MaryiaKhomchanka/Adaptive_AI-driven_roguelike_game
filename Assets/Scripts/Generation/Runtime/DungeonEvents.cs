@@ -14,6 +14,7 @@ namespace Generation.Runtime
         public static event Action<int> RoomLooted;
         public static event Action<int> BossResolved;
         public static event Action<DungeonSummary> DungeonCompleted;
+        public static event Action<int> CoinsCollected;
 
         public static DungeonLayout CurrentLayout { get; private set; }
         public static float DungeonStartTime { get; private set; }
@@ -37,6 +38,7 @@ namespace Generation.Runtime
             BossResolved?.Invoke(roomId);
         }
         public static void RaiseDungeonCompleted(DungeonSummary summary) => DungeonCompleted?.Invoke(summary);
+        public static void RaiseCoinsCollected(int amount) => CoinsCollected?.Invoke(amount);
 
         /// <summary>Called by combat when the boss lets the player go without being destroyed (spec 6.4).</summary>
         public static void ReportBossResolved()

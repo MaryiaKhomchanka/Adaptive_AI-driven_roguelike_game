@@ -25,13 +25,30 @@ namespace Generation.Runtime
         /// <summary>Current room's tile bounds, in world units (1 tile = 1 unit). Null = no clamping (e.g. before the first room is active). Set at runtime only, not inspector-editable.</summary>
         [System.NonSerialized] public RectInt? RoomBounds;
 
+        /// <summary>0 turns shake off (set from the game's settings).</summary>
+        public static float ShakeScale = 1f;
+        static float shakeAmplitude;
+        static float shakeEnds;
+        static float shakeDuration;
+
+        public static void Shake(float amplitude, float duration)
+        {
+            if (amplitude < shakeAmplitude && Time.time < shakeEnds) return; // never replace a stronger shake still running
+            shakeAmplitude = amplitude;
+            shakeDuration = Mathf.Max(0.01f, duration);
+            shakeEnds = Time.time + shakeDuration;
+        }
+
         Vector3 velocity;
+        Vector3 shakeOffset;
         Camera cam;
 
         void Awake() => cam = GetComponent<Camera>();
 
         void LateUpdate()
         {
+            transform.position -= shakeOffset;
+            shakeOffset = Vector3.zero;
             if (target == null) return;
 
             var cameraZ = transform.position.z;
@@ -60,6 +77,13 @@ namespace Generation.Runtime
             desired.z = cameraZ;
 
             transform.position = ClampToRoom(desired);
+
+            if (Time.time < shakeEnds)
+            {
+                var strength = shakeAmplitude * ShakeScale * (shakeEnds - Time.time) / shakeDuration;
+                shakeOffset = (Vector3)(Random.insideUnitCircle * strength);
+                transform.position += shakeOffset;
+            }
         }
 
         Vector3 ClampToRoom(Vector3 position)

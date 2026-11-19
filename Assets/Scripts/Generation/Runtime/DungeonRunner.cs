@@ -1,5 +1,7 @@
+using System.Collections;
 using Generation.Core;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace Generation.Runtime
 {
@@ -13,12 +15,44 @@ namespace Generation.Runtime
         public RoomCamera roomCamera;
         public RoomTransitionController transitionController;
 
+        [Tooltip("Off when something else (the game flow's victory screen) decides what happens after the portal.")]
+        public bool advanceOnCompletion = true;
+
+        /// <summary>Set by the game flow before loading the dungeon scene; 0 = use the inspector value.</summary>
+        public static int StartDungeonIndex;
+
         [Header("Run state")]
         public int dungeonIndex = 1;
         public int seed;
 
+        void OnEnable() => DungeonEvents.DungeonCompleted += OnDungeonCompleted;
+        void OnDisable() => DungeonEvents.DungeonCompleted -= OnDungeonCompleted;
+
+        // Deferred a frame: this fires from the portal's physics callback, and Regenerate destroys/creates colliders.
+        void OnDungeonCompleted(DungeonSummary summary)
+        {
+            if (advanceOnCompletion) StartCoroutine(Advance());
+        }
+
+        IEnumerator Advance()
+        {
+            yield return null;
+            if (!string.IsNullOrEmpty(config.hubSceneName) && Application.CanStreamedLevelBeLoaded(config.hubSceneName))
+            {
+                SceneManager.LoadScene(config.hubSceneName);
+                yield break;
+            }
+
+            if (!string.IsNullOrEmpty(config.hubSceneName))
+                Debug.LogWarning($"[Dungeon] hub scene '{config.hubSceneName}' is not in Build Settings; generating the next dungeon instead.");
+            dungeonIndex++;
+            seed = System.Environment.TickCount;
+            Regenerate();
+        }
+
         void Start()
         {
+            if (StartDungeonIndex > 0) dungeonIndex = StartDungeonIndex;
             if (seed == 0) seed = System.Environment.TickCount;
             Regenerate();
         }
@@ -26,6 +60,7 @@ namespace Generation.Runtime
         public void Regenerate()
         {
             EntryGrace.Configure(config.entryGraceSeconds);
+            DungeonLighting.Setup(config, player, builder.wallShadows);
 
             var provider = new DefaultRequestProvider(config);
             var request = provider.Create(dungeonIndex, seed);
@@ -38,6 +73,9 @@ namespace Generation.Runtime
         void PlacePlayerAtStart(DungeonLayout layout)
         {
             if (player == null) return;
+            // the scene's player may keep sorting order 0 (same as the floor), which hides it under tiles by Y-sort
+            foreach (var sr in player.GetComponentsInChildren<SpriteRenderer>())
+                sr.sortingOrder = DungeonBuilder.ActorSortingOrder;
             if (!builder.RoomsById.TryGetValue(layout.StartRoomId, out var startRoom)) return;
 
             var bounds = startRoom.TileBounds;

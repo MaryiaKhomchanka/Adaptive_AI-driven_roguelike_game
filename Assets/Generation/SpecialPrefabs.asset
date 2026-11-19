@@ -15,5 +15,5 @@ MonoBehaviour:
   treasureChest: {fileID: 6802636009841921800, guid: 3808299f33ada4c72b6050391876ab2d, type: 3}
   shopVendor: {fileID: 2276152271119440094, guid: 7e866aff5358e48d28d537a387dfccce, type: 3}
   npc: {fileID: 5937942270699112695, guid: a6bd5b9d946cd4ec384481f4aa95f043, type: 3}
-  boss: {fileID: 8631976593576731727, guid: 567af4f0ae0f6456c8af90453a68ec36, type: 3}
+  boss: {fileID: 8438145898269571042, guid: 58631f58a377417ab838574701829ce6, type: 3}
   portal: {fileID: 4095155929244160617, guid: 2de9cb39581ab4443843667fd122e85f, type: 3}

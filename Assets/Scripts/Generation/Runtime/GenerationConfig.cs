@@ -33,6 +33,22 @@ namespace Generation.Runtime
         [Header("Rooms & camera")]
         [Range(0.5f, 1f)] public float entryGraceSeconds = 0.75f;
 
+        [Header("Lighting")]
+        [Range(0, 1)] public float ambientLight = 0.4f;
+        public Color torchColor = new Color(1f, 0.85f, 0.6f);
+        public float torchIntensity = 1.2f;
+        public float torchRadius = 7f;
+
+        [Header("Retro light")]
+        [Tooltip("Light 'pixels' per world unit (8 = 4x4 art pixels at 32 PPU). 0 = smooth light.")]
+        public float lightPixelsPerUnit = 8f;
+        [Tooltip("Brightness levels per 1.0 of light: fewer = chunkier ladder. 0 = smooth light.")]
+        public float lightSteps = 5f;
+
+        [Header("After a dungeon")]
+        [Tooltip("Scene to load when the portal is entered. Empty, or not in Build Settings: generate the next dungeon in place.")]
+        public string hubSceneName = "";
+
         [Header("Generation")]
         public int maxGenerationAttempts = 50;
 

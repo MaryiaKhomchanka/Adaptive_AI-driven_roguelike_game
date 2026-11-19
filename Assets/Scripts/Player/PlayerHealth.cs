@@ -1,5 +1,6 @@
+using System;
+using Generation.Runtime;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 public class PlayerHealth : MonoBehaviour, IDamageable
 {
@@ -10,8 +11,11 @@ public class PlayerHealth : MonoBehaviour, IDamageable
     private Animator animator;
     private bool isDead = false;
 
+    public static event Action Died;
+
     private void Start()
     {
+        maxHealth += SaveData.Current.bonusHealth;
         currentHealth = maxHealth;
         animator = GetComponent<Animator>();
 
@@ -20,13 +24,17 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 
     public void TakeDamage(int damage)
     {
-        if (isDead)
+        if (isDead || EntryGrace.IsActive)
         {
             return;
         }
         currentHealth -= damage;
 
-        
+        Fx.Flash(gameObject, new Color(1f, 0.35f, 0.35f), 0.15f);
+        Fx.Burst(transform.position, new Color(0.9f, 0.1f, 0.15f), 10, 3.5f);
+        Fx.Float(transform.position + Vector3.up * 0.8f, $"-{damage}", new Color(1f, 0.3f, 0.3f));
+        RoomCamera.Shake(0.25f, 0.25f);
+
         if (currentHealth <= 0)
         {
             currentHealth = 0;
@@ -47,14 +55,14 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 
         GetComponent<PlayerMovements>().DisableMovement();
         animator.SetTrigger("Dead");
+        Died?.Invoke();
     }
 
-    private void Update()
+    public void GrowMaxHealth(int amount)
     {
-        if (Keyboard.current.hKey.wasPressedThisFrame)
-        {
-            TakeDamage(1);
-        }
+        maxHealth += amount;
+        currentHealth += amount;
+        if (heartUI != null) heartUI.UpdateHearts(currentHealth, maxHealth);
     }
     
 }
