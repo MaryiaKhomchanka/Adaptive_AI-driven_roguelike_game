@@ -1,3 +1,4 @@
+using Generation.Runtime;
 using UnityEngine;
 using UnityEngine.InputSystem; 
 
@@ -53,6 +54,7 @@ public class PlayerAttack : MonoBehaviour
         Projectile projectile = Instantiate(projectileObject, spawnPosition, Quaternion.identity);
 
         projectile.Shoot(direction, speed, damage, targetLayers);
+        Fx.Burst(spawnPosition, new Color(1f, 0.9f, 0.5f), 4, 2.5f, 0.2f);
 
         nextFire = Time.time + cooldown;
     }

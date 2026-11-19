@@ -15,6 +15,9 @@ namespace Generation.Runtime
         public RoomCamera roomCamera;
         public RoomTransitionController transitionController;
 
+        [Tooltip("Off when something else (the game flow's victory screen) decides what happens after the portal.")]
+        public bool advanceOnCompletion = true;
+
         [Header("Run state")]
         public int dungeonIndex = 1;
         public int seed;
@@ -23,7 +26,10 @@ namespace Generation.Runtime
         void OnDisable() => DungeonEvents.DungeonCompleted -= OnDungeonCompleted;
 
         // Deferred a frame: this fires from the portal's physics callback, and Regenerate destroys/creates colliders.
-        void OnDungeonCompleted(DungeonSummary summary) => StartCoroutine(Advance());
+        void OnDungeonCompleted(DungeonSummary summary)
+        {
+            if (advanceOnCompletion) StartCoroutine(Advance());
+        }
 
         IEnumerator Advance()
         {

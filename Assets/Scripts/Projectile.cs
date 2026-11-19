@@ -1,3 +1,4 @@
+using Generation.Runtime;
 using UnityEngine;
 
 public class Projectile : MonoBehaviour
@@ -10,6 +11,7 @@ public class Projectile : MonoBehaviour
     private LayerMask targetLayers;
     private int damage;
     private bool hit;
+    private float nextTrail;
 
     private void Awake()
     {
@@ -51,6 +53,7 @@ public class Projectile : MonoBehaviour
         {
             hit = true;
             target.TakeDamage(damage);
+            Fx.Burst(transform.position, new Color(1f, 0.9f, 0.5f), 5, 3f, 0.3f);
             Destroy(gameObject);
         }
     }
@@ -58,11 +61,18 @@ public class Projectile : MonoBehaviour
     private void DestroyProjectile()
     {
         hit = true;
+        Fx.Burst(transform.position, new Color(0.85f, 0.85f, 0.9f), 6, 3f, 0.3f);
         Destroy(gameObject);
     }
 
     private void Update()
     {
         transform.Rotate(0f, 0f, rotation * Time.deltaTime);
+
+        if (Time.time >= nextTrail)
+        {
+            nextTrail = Time.time + 0.05f;
+            Fx.Spawn(transform.position, Vector2.zero, new Color(1f, 0.9f, 0.6f), 0.25f, 1f, DungeonBuilder.ActorSortingOrder + 1);
+        }
     }
 }

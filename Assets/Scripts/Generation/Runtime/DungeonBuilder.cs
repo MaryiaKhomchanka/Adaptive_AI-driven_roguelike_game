@@ -282,7 +282,7 @@ namespace Generation.Runtime
             return go;
         }
 
-        static Tilemap CreateTilemap(Transform parent, string name, int sortingOrder, bool withWallCollider)
+        public static Tilemap CreateTilemap(Transform parent, string name, int sortingOrder, bool withWallCollider)
         {
             var go = NewChild(parent, name);
             var tilemap = go.AddComponent<Tilemap>();

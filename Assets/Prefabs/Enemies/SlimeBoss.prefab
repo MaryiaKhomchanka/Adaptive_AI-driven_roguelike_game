@@ -19,6 +19,7 @@ GameObject:
   - component: {fileID: 6386024011818213455}
   - component: {fileID: 6575809284492887124}
   - component: {fileID: 7340951826403918275}
+  - component: {fileID: 807188609878407498}
   m_Layer: 7
   m_Name: SlimeBoss
   m_TagString: Untagged
@@ -280,3 +281,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossController
   minionPrefab: {fileID: 8438145898269571042, guid: f274a81c17917436a8d9b30f99d661b1, type: 3}
+--- !u!114 &807188609878407498
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8438145898269571042}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d051d7408084f7cb3a7798ccc4e2cad, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SlimeTrail

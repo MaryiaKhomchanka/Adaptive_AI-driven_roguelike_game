@@ -14,7 +14,9 @@ namespace Generation.Runtime
         void Update()
         {
             if (playerMask < 0) playerMask = LayerMask.GetMask("Player");
-            if (Physics2D.OverlapCircle(transform.position, pickupRadius, playerMask) != null) Destroy(gameObject);
+            if (Physics2D.OverlapCircle(transform.position, pickupRadius, playerMask) == null) return;
+            Fx.Burst(transform.position, new Color(1f, 0.85f, 0.25f), 10, 2.5f, 0.5f);
+            Destroy(gameObject);
         }
     }
 }
